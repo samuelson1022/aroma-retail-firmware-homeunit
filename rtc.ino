@@ -1,22 +1,25 @@
-#include "menu.h"
 
-int init_rtc(void) {
-  rtc.setTime(30, 24, 15, 15, 5, 2023);  //dummy time, can be set to current day via code
-  //SetTime.Date =
+int init_rtc(void)
+{
+  rtc.setTime(30, 24, 15, 23, 4, 2023); //dummy time, can be set to current day via code
+  //SetTime.Date = 
   delay(10);
   return 0;
 }
 
-int rtc_set(int hr, int min, int sec, int day, int mon, int year) {
+int rtc_set(int hr, int min, int sec, int day, int mon, int year)
+{
   //rtc.setTime(30, 24, 15, 19, 4, 2023);
   rtc.setTime(sec, min, hr, day, mon, year);
   delay(10);
   return 0;
 }
 
-int rtc_get(RTCTimeStructType *SetTime, RTCDateStructType *SetDate) {
+int rtc_get(RTCTimeStructType *SetTime, RTCDateStructType *SetDate)
+{
   struct tm timeinfo = rtc.getTimeStruct();
   //tm (int8_t wday, int16_t year, int8_t mon, int8_t mday, int8_t hour, int8_t min, int8_t sec)
+  //Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
   SetTime->Seconds = rtc.getSecond();
   SetTime->Minutes = rtc.getMinute();
   SetTime->Hours = rtc.getHour(true);
@@ -40,6 +43,6 @@ void SaveToRTC() {
     else iDate = iDate + dowDiff;
   }
 
-  Serial.println(String(prevTimeState.dayOfWeek)+"," + String(GetDate.WeekDay) + "," + String(GetDate.Date)+"," + String(iDate));
+  Serial.println(String(prevTimeState.dayOfWeek)+"," + String(GetDate.Month + 1) + "," + String(GetDate.Year)+"," + String(iDate));
   rtc_set(prevTimeState.hour, prevTimeState.minute, 0, iDate, GetDate.Month + 1, GetDate.Year);
 }

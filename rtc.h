@@ -28,29 +28,6 @@ typedef struct
 }
 RTCDateStructType;
 
-typedef enum
-{
-	eTimeSetDisabled,
-	eTimeSetHours,
-	eTimeSetMinutes,
-	eTimeSetAMPM,
-	eTimeSetDayOfWeek
-}
-eTimeSetState;
-typedef struct
-{
-	eTimeSetState	TimeSetState;
-	int8_t			TimeSetEnableDOW;
-	int8_t			TimeSetRow;
-	int8_t			TimeSetCol;
-	int8_t			TimeSetFlash;
-	int8_t*			pTimeSetHours;
-	int8_t*			pTimeSetMinutes;
-	int8_t*			pDayOfWeek;
-	char			szLabel[6];
-}
-TimeSetStructType;
-
 RTCTimeStructType SetTime;
 RTCDateStructType SetDate;
 
@@ -61,7 +38,7 @@ RTCTimeStructType CurrentTime;
 RTCDateStructType CurrentDate;
 
 int init_rtc(void);
-int rtc_set(int hr, int min, int sec, int day, int mon, int year);
+int rtc_set(int hr, int min, int sec, int wday);
 int rtc_get(RTCTimeStructType *SetTime, RTCDateStructType *SetDate);
 
 #endif

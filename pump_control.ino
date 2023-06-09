@@ -3,7 +3,7 @@
 stPumpControl PumpControl = { 0 };
 
 void Handle_Pump_State(void) {
-  char szControl[96];
+  //char szControl[VLCDCOLMAX];
   int iEvent = 0;
   int iDOW = 0;
 
@@ -26,8 +26,6 @@ void Handle_Pump_State(void) {
         //{
         //SetBlowerSpeed(PumpControl.FanSpeed);
         PumpActuate(1);
-        sprintf(szControl, "Wrk%3is Paus%3is", PumpControl.WorkSecsRemaining - 1, pControlRec->Pause);
-        //Print_VLCD(2, 1, 0, szControl);  
         if (--PumpControl.WorkSecsRemaining <= 0) {
           //SetBlowerSpeed(eSpeed_Off);
           PumpActuate(0);
@@ -57,8 +55,6 @@ void Handle_Pump_State(void) {
         // PumpControl.WorkSecsRemaining = EventControl.Work;
         // PumpControl.PumpState = ePumpStateWorking;
         //}
-        sprintf(szControl, "Wrk%3is Paus%3is", pControlRec->Work, PumpControl.PauseSecsRemaining - 1);
-        //Print_VLCD(2, 1, 0, szControl);
         break;
     }  // end switch
   } else {

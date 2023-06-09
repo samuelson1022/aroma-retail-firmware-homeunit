@@ -50,7 +50,5 @@ stEventControl EventControl = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "Evt:" };
 stEventControl* pControlRec = &EventControl;
 
 void Handle_Pump_State(void );
-void End_Pump_Control();
-void Init_Pump_State();
 
 #endif

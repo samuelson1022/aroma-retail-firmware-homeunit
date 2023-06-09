@@ -61,7 +61,7 @@ typedef struct
 
 SCBStructType StateCB;
 
-#define SERVER          "http://3.101.17.195:8080/api/v1"
+#define SERVER          "http://3.101.17.195:8081/api/v1"
 #define API_EVENTS      "ar_GetEvents"
 #define API_FWINFO      "ar_GetFWUpdateInfo"
 #define API_FWPACKET    "ar_GetFWUpdatePacket"
@@ -71,5 +71,6 @@ SCBStructType StateCB;
 #define API_METRICS     "ar_Metrics"
 #define API_SETEVENT    "ar_SetEvent"
 #define API_FRIENDLYNAME  "ar_FriendlyName"
+#define API_STATUS      "ar_Status"
 
 #endif

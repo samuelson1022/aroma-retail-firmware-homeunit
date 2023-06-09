@@ -1,8 +1,6 @@
 //#include "rtc.h"
-#include "ota.h"
-#include "pump_control.h"
 
-int API_Get_Status(String server, int bUpdateRTCFlag, int* piAction)
+int API_Get_Status(char* szSerial, int bUpdateRTCFlag, int* piAction)
 {
   char szResponse[128];
   char szAPI[64];
@@ -15,10 +13,13 @@ int API_Get_Status(String server, int bUpdateRTCFlag, int* piAction)
   Serial.println("API_Get_Status");
 
   // Get status from API
-  String serverPath = serverName + "/ar_Status/Aroma-100-230420";
+  sprintf(szAPI, "%s/%s/%s", SERVER, API_STATUS, szSerial);
+  Serial.println(szAPI);
+  http.begin(szAPI);
+  // String serverPath = serverName + "/ar_Status/Aroma-100-230420";
   *piAction = 0;
 
-  http.begin(serverPath.c_str());
+  // http.begin(serverPath.c_str());
   int httpCode = http.GET();
 
   if (httpCode > 0) {
@@ -95,9 +96,14 @@ int API_Get_Events(char* szSerial)
   //STHR|STMIN|EHR|EMIN|DOWBM|W|P|F|..(4 more sets)
 
   // Get status from API
-  String serverPath = serverName + "/ar_GetEvents/Aroma-100-230420";
+  
+  sprintf(szAPI, "%s/%s/%s", SERVER, API_EVENTS, szSerial);
+  Serial.println(szAPI);
+  http.begin(szAPI);
 
-  http.begin(serverPath.c_str());
+  // String serverPath = serverName + "/ar_GetEvents/Aroma-100-230420";
+
+  // http.begin(serverPath.c_str());
   int httpCode = http.GET();
 
   if (httpCode > 0) {
@@ -297,118 +303,5 @@ int API_Get_OverrideCancel(char* szSerial)
   printf("Override canceled\r\n");
   End_Pump_Control();
   httpCode = API_Get_ACK(szSerial, API_OVERRIDECANCEL);
-  return httpCode;
-}
-
-int API_Get_FWUpdateInfo(char* szSerial)
-{
-  char szResponse[256];
-  char szAPI[64];
-  int i;
-  char* token;
-
-  // FW INFO
-  //BYTELEN|CRC|
-
-  sprintf(szAPI, "%s/%s", API_FWINFO, szSerial);
-  //int httpCode = API_Get_Request(szAPI, szResponse);
-  http.begin(szAPI);
-  int httpCode = http.GET();
-  
-  if (httpCode > 0) {
-    String payload = http.getString();
-    payload.remove(0, 9);
-    payload.toCharArray(szResponse, 128);
-    Serial.println("HTTP code for GET Override = "+ String(httpCode));
-    Serial.println(payload);
-  } else {
-    Serial.println("Error on HTTP ACK request");
-  }
-  
-  if (httpCode == 200)
-  {
-    printf("FWINFO response: %s\r\n", szResponse);
-    // Parse fw update parameters
-    token = strtok(szResponse, "|"); if (token == NULL) return 0;
-    FWUpdate_Rec.ByteCount = atoi(token);
-    token = strtok(NULL, "|"); if (token == NULL) return 0;
-    FWUpdate_Rec.uCRC = atoi(token);
-  }
-  return httpCode;
-}
-
-int API_Get_FWUpdatePackets(char* szSerial)
-{
-  char szResponse[256];
-  char szAPI[64];
-  int i;
-  int iPigTail;
-  int iPacketNum;
-  int iPacketLength;
-  char* token;
-
-  // FW Packet
-  // PACKET(Index)|
-  File file = SPIFFS.open("/update.bin", FILE_APPEND);
-  sprintf(szAPI, "%s/%s/%i", API_FWPACKET, szSerial, FWUpdate_Rec.PacketIndex);
-  //int httpCode = API_Get_Request(szAPI, szResponse);
-
-  http.begin(szAPI);
-  int httpCode = http.GET();
-  
-  if (httpCode > 0) {
-    String payload = http.getString();
-    payload.remove(0, 9);
-    payload.toCharArray(szResponse, 128);
-    Serial.println("HTTP code for GET FWUpdatePackets = "+ String(httpCode));
-    Serial.println(payload);
-  } else {
-    Serial.println("Error on HTTP ACK request");
-  }
-  
-  if (httpCode == 200)
-  {
-    
-    printf("FWPACKET[%i]: %s\r\n", FWUpdate_Rec.PacketIndex, szResponse);
-    // Parse fw packets
-    token = strtok(szResponse, "|"); if (token == NULL) return 0;
-    iPacketLength = FWUpdate_Rec.ByteCount * 2; // 114580
-    iPacketNum = iPacketLength / PACKETSIZEBYTES; // 895
-    iPigTail = (iPacketLength % PACKETSIZEBYTES) > 0 ? 1 : 0; //20
-    if (FWUpdate_Rec.PacketIndex < iPacketNum)
-    {
-      if ((FWUpdate_Rec.PacketIndex == iPacketNum - 1) && !iPigTail)
-      {
-        //FlashPacket(FWUpdate_Rec.PacketIndex, token, 1);  // last segment
-        if (!file.print(szResponse))
-        {
-          Serial.println("Appending file");
-        }
-        FWUpdate_State = eFWUpdate_Idle;
-        API_Get_ACK(StateCB.szUnitSerial, API_FWPACKET);
-      }
-      else
-      {
-        //FlashPacket(FWUpdate_Rec.PacketIndex, token, 0);   // not last one
-        if (!file.print(szResponse))
-        {
-          Serial.println("Appending file");
-        }
-        FWUpdate_Rec.PacketIndex++;
-      }
-    }
-    else
-    {
-      //FlashPacket(FWUpdate_Rec.PacketIndex, token, 1);
-      if (!file.print(szResponse))
-      {
-          Serial.println("Appending file");
-      }
-      FWUpdate_State = eFWUpdate_Idle;
-      API_Get_ACK(StateCB.szUnitSerial, API_FWPACKET);
-    }
-  }
-  file.close();
-  updateFromFS();
   return httpCode;
 }

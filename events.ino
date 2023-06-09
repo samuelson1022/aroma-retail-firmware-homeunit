@@ -104,7 +104,7 @@ int HasEventActive(int* piEvent)
     {
       StartSeconds = (StateCB.Events[i].StartHour * 60 * 60) + (StateCB.Events[i].StartMinute * 60);
       EndSeconds = (StateCB.Events[i].EndHour * 60 * 60) + (StateCB.Events[i].EndMinute * 60);
-      Serial.println("has event active check:" + String(CurrentDate.WeekDay));
+      
       if(CheckBetweenTimes(CurrentSeconds, StartSeconds, EndSeconds))
       {
         // First event wins

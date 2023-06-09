@@ -20,13 +20,13 @@ Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_DAT, TFT_CLK, TFT_RST)
 
 // X, Y, width, height, yoffset
 const int characterDayPos[7][5] = {
-  { 258, 0, 24, 16, 9 },   // SUN
+  { 258, 0, 24, 16, 9 },  // SUN
   { 80, 0, 28, 16, 9 },   // MON
   { 114, 0, 23, 16, 9 },  // TUE
   { 143, 0, 27, 16, 9 },  // WED
   { 176, 0, 23, 16, 9 },  // THU
   { 205, 0, 18, 16, 9 },  // FRI
-  { 229, 0, 23, 16, 9 }  // SAT
+  { 229, 0, 23, 16, 9 }   // SAT
 };
 
 String characterDay[7] = {
@@ -49,80 +49,31 @@ void lcdInit() {
   tft.setRotation(1);
   tft.fillScreen(ST77XX_BLACK);
   tft.setTextColor(ST77XX_WHITE);
-
-  // tft.setCursor(REF_X + 35, REF_Y + 77);
-  // tft.setFont(&TickingTimebombBB18pt7b);
-  // tft.print("8");
 }
-
-/*
-void showTime() {
-  if (prevTimeState.preMarqueeState != Marquee_State) {
-    switch (Marquee_State) {
-      case MarqueeState_Event_Running:
-        showPauseString(false);
-        showOffString(false);
-        showWorkString(true);
-        showONString(true);
-        break;
-      case MarqueeState_No_Event:
-        showWorkString(false);
-        showONString(false);
-        showPauseString(true);
-        showOffString(true);
-        break;
-    }
-    prevTimeState.preMarqueeState = Marquee_State;
-  }
-
-  rtc_get(&currentTime, &currentDate);
-
-  if (prevTimeState.hour != currentTime.Hours) {
-    showHour(currentTime.Hours);
-    prevTimeState.hour = currentTime.Hours;
-  }
-
-  if (prevTimeState.colonFlag) {
-    tft.fillRect(REF_X + characterColonPos[0], REF_Y + characterColonPos[1] - characterColonPos[4], characterColonPos[2], characterHourPos[3], ST77XX_BLACK);
-    prevTimeState.colonFlag = false;
-  } else {
-    tft.setCursor(REF_X + characterColonPos[0], REF_Y + characterColonPos[1]);
-    tft.setFont(&TickingTimebombBB46pt7b);
-    tft.setTextColor(ST77XX_WHITE);
-    tft.print(":");
-    prevTimeState.colonFlag = true;
-  }
-
-  if (prevTimeState.minute != currentTime.Minutes) {
-    showMinute(currentTime.Minutes);
-    prevTimeState.minute = currentTime.Minutes;
-  }
-
-  if (prevTimeState.dayOfWeek != currentDate.WeekDay) {
-    tft.fillRect(REF_X + characterDayPos[prevTimeState.dayOfWeek][0], REF_Y + characterDayPos[prevTimeState.dayOfWeek][1] - characterDayPos[prevTimeState.dayOfWeek][4], characterDayPos[prevTimeState.dayOfWeek][2], 90, ST77XX_BLACK);
-    tft.setCursor(REF_X + characterDayPos[currentDate.WeekDay][0], REF_Y + characterDayPos[currentDate.WeekDay][1]);
-    tft.setFont(&ArialNarrow27pt7b);
-    tft.print(characterDay[currentDate.WeekDay]);
-    prevTimeState.dayOfWeek = currentDate.WeekDay;
-  }
-}
-*/
 
 void showHour(uint8_t hourValue, bool visible) {
   if (visible) {
     tft.setCursor(REF_X + characterHourPos[0], REF_Y + characterHourPos[1]);
+    tft.setTextColor(ST77XX_WHITE);
     tft.setFont(&TickingTimebombBB46pt7b);
     if (hourValue < 10)
       tft.print(String("0") + String(hourValue));
     else
       tft.print(String(hourValue));
-  } else
+  } else {
     tft.fillRect(REF_X + characterHourPos[0], REF_Y + characterHourPos[1] - characterHourPos[4], characterHourPos[2], characterHourPos[3], ST77XX_BLACK);
+
+    // tft.setCursor(REF_X + characterHourPos[0], REF_Y + characterHourPos[1]);
+    // tft.setTextColor(ST77XX_BLACK);
+    // tft.setFont(&TickingTimebombBB46pt7b);
+    // tft.print("88");
+  }
 }
 
 void showMinute(uint8_t minuteValue, bool visible) {
   if (visible) {
     tft.setCursor(REF_X + characterMinutePos[0], REF_Y + characterMinutePos[1]);
+    tft.setTextColor(ST77XX_WHITE);
     tft.setFont(&TickingTimebombBB46pt7b);
     if (minuteValue < 10)
       tft.print(String("0") + String(minuteValue));
@@ -130,12 +81,17 @@ void showMinute(uint8_t minuteValue, bool visible) {
       tft.print(String(minuteValue));
   } else {
     tft.fillRect(REF_X + characterMinutePos[0], REF_Y + characterMinutePos[1] - characterMinutePos[4], characterMinutePos[2], characterHourPos[3], ST77XX_BLACK);
+    // tft.setCursor(REF_X + characterMinutePos[0], REF_Y + characterMinutePos[1]);
+    // tft.setTextColor(ST77XX_BLACK);
+    // tft.setFont(&TickingTimebombBB46pt7b);
+    // tft.print("88");
   }
 }
 
 void showColon(bool visible) {
   if (visible) {
     tft.setCursor(REF_X + characterColonPos[0], REF_Y + characterColonPos[1]);
+    tft.setTextColor(ST77XX_WHITE);
     tft.setFont(&TickingTimebombBB46pt7b);
     tft.setTextColor(ST77XX_WHITE);
     tft.print(":");
@@ -150,6 +106,7 @@ void showDayOfWeek(uint8_t dayOfWeekValue, bool visible) {
     for (int i = 0; i < 7; i++) {
       if ((dayOfWeekValue >> i) & 1 == 1) {
         tft.setCursor(REF_X + characterDayPos[i][0], REF_Y + characterDayPos[i][1]);
+        tft.setTextColor(ST77XX_WHITE);
         tft.setFont(&ArialNarrow27pt7b);
         tft.print(characterDay[i]);
       }
@@ -162,6 +119,7 @@ void showDayOfWeek(uint8_t dayOfWeekValue, bool visible) {
 void showWorkString(bool visible) {
   if (visible) {
     tft.setCursor(REF_X, REF_Y + characterWorkPos[1]);
+    tft.setTextColor(ST77XX_WHITE);
     tft.setFont(&ArialNarrow27pt7b);
     tft.print("WORK");
   } else {
@@ -172,6 +130,7 @@ void showWorkString(bool visible) {
 void showPauseString(bool visible) {
   if (visible) {
     tft.setCursor(REF_X, REF_Y + characterPausePos[1]);
+    tft.setTextColor(ST77XX_WHITE);
     tft.setFont(&ArialNarrow27pt7b);
     tft.print("PAUSE");
   } else {
@@ -183,6 +142,7 @@ void showPauseString(bool visible) {
 void showEventString(bool visible) {
   if (visible) {
     tft.setCursor(REF_X, REF_Y + characterEventPos[1]);
+    tft.setTextColor(ST77XX_WHITE);
     tft.setFont(&ArialNarrow27pt7b);
     tft.print("EVENT");
   } else {
@@ -193,6 +153,7 @@ void showEventString(bool visible) {
 void showONString(bool visible) {
   if (visible) {
     tft.setCursor(REF_X, REF_Y + characterONPos[1]);
+    tft.setTextColor(ST77XX_WHITE);
     tft.setFont(&ArialNarrow27pt7b);
     tft.print("ON");
   } else {
@@ -203,6 +164,7 @@ void showONString(bool visible) {
 void showOffString(bool visible) {
   if (visible) {
     tft.setCursor(REF_X, REF_Y + characterOffPos[1]);
+    tft.setTextColor(ST77XX_WHITE);
     tft.setFont(&ArialNarrow27pt7b);
     tft.print("OFF");
   } else {
@@ -213,6 +175,7 @@ void showOffString(bool visible) {
 void showLevelString(uint8_t levelValue, bool visible) {
   if (visible) {
     tft.setCursor(REF_X + characterLevelPos[0], REF_Y + characterLevelPos[1]);
+    tft.setTextColor(ST77XX_WHITE);
     tft.setFont(&TickingTimebombBB18pt7b);
     tft.print(String(levelValue));
   } else {

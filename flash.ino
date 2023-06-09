@@ -75,7 +75,6 @@ void Init_SCB()
   printf("MAC:  %s\r\n", Get_MAC_Address_Str(szMesg));
   printf("SSID: %s\r\n", StateCB.szSSID);
   printf("PW:   %s\r\n", StateCB.szPW);
-  printf("Event: Start %i:%i\r\n", StateCB.Events[0].StartHour, StateCB.Events[0].StartMinute);
 }
 void Set_Factory_Defaults()
 {
@@ -92,7 +91,7 @@ void Set_Factory_Defaults()
     StateCB.Events[i].WorkSeconds = 15;
     StateCB.Events[i].PauseSeconds = 60;
     StateCB.Events[i].DayOfWeek = (i == 0) ? 0b01111111 : 0b00000000; // all days for event 1 only
-    StateCB.Events[i].Level = 6; // "Level 3"
+    StateCB.Events[i].Level = 2; // "Level 3"
     StateCB.Events[i].FanSpeed = 1; // "Low"
     Update_SCB();
   }

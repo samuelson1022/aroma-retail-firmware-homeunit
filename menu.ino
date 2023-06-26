@@ -13,7 +13,7 @@ bool showEventDisplayOnce = false;
 void Menu_Display() {
   switch (MenuType) {
     case eMenu_Aroma_Home:
-      showLevelString(0, false);
+      showLevelString(5, false);
       showEventString(false);
       if (prevTimeState.preMarqueeState != Marquee_State) {
         switch (Marquee_State) {
@@ -46,7 +46,7 @@ void Menu_Display() {
       }
 
       if (prevTimeState.hour != currentTime.Hours) {
-        showHour(currentTime.Hours, false);
+        // showHour(currentTime.Hours, false);
         showHour(currentTime.Hours, true);
         prevTimeState.hour = currentTime.Hours;
       }
@@ -55,21 +55,13 @@ void Menu_Display() {
       showColon(prevTimeState.colonFlag);
 
       if (prevTimeState.minute != currentTime.Minutes) {
-        showMinute(currentTime.Minutes, false);
+        // showMinute(currentTime.Minutes, false);
         showMinute(currentTime.Minutes, true);
         prevTimeState.minute = currentTime.Minutes;
       }
       break;
     case eMenu_Aroma_Set_Events:
       if (!showEventDisplayOnce) {
-        showPauseString(false);
-        showOffString(false);
-        showWorkString(false);
-        showEventString(true);
-        showONString(true);
-        showLevelString(0, false);
-        showLevelString(prevTimeState.eventLevel, true);
-
         // Event stored day of week - bit value
         showDayOfWeek(0, false);
         showDayOfWeek(prevTimeState.dayOfWeek, true);
@@ -81,6 +73,15 @@ void Menu_Display() {
         showColon(true);
         showMinute(0, false);
         showMinute(prevTimeState.minute, true);
+        
+        showPauseString(false);
+        showOffString(false);
+        showWorkString(false);
+        showEventString(true);
+        showONString(true);
+        showLevelString(0, false);
+        showLevelString(prevTimeState.eventLevel, true);
+
 
         showEventDisplayOnce = true;
       }
@@ -139,7 +140,8 @@ void Menu_Display() {
       showColon(false);
       showMinute(0, false);
       showDayOfWeek(0, false);
-      showMinute(prevTimeState.workLevel * 10, true);
+      prevTimeState.minuteFlag = !(prevTimeState.minuteFlag);
+      showMinute(prevTimeState.workLevel * 10, prevTimeState.minuteFlag);
       break;
   }
 }

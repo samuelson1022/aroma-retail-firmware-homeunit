@@ -4,14 +4,7 @@
 
 char* Get_MAC_Address_Str(char* szAddress)
 {
-  sprintf(szAddress,
-    "%02X:%02X:%02X:%02X:%02X:%02X  ", 
-    StateCB.MACAddress[0], 
-    StateCB.MACAddress[1], 
-    StateCB.MACAddress[2], 
-    StateCB.MACAddress[3], 
-    StateCB.MACAddress[4], 
-    StateCB.MACAddress[5]);
+  sprintf(szAddress, "%s", StateCB.MACAddress);
   return szAddress;
 }
 
@@ -37,17 +30,12 @@ void Init_SCB()
     printf("Initializing SCB\r\n");
     StateCB.uHeaderID = SCBHEADERID;
     StateCB.SCB_State = eSCB_CM_Validate;
-    strcpy(StateCB.szUnitSerial, "Aroma-100-230422");
+    strcpy(StateCB.szUnitSerial, "AROMA-001-231109");
     strcpy(StateCB.szUnitName, "Aroma Dispenser");
     strcpy(StateCB.szPCBSerial, "?");
-    strcpy(StateCB.szSSID, "");
-    strcpy(StateCB.szPW, "");
-    StateCB.MACAddress[0] = 0xFC; //default MAC
-    StateCB.MACAddress[1] = 0xCD;
-    StateCB.MACAddress[2] = 0x2F;
-    StateCB.MACAddress[3] = 0x90;
-    StateCB.MACAddress[4] = 0x03;
-    StateCB.MACAddress[5] = 0xFF;
+    strcpy(StateCB.szSSID, "CU_F68b");
+    strcpy(StateCB.szPW, "hk2yjznx");
+    strcpy(StateCB.MACAddress, "FC:CD:2F:90:09:2A");
     StateCB.Levels[0].WorkSeconds =  3; StateCB.Levels[0].PauseSeconds = 160;
     StateCB.Levels[1].WorkSeconds = 10; StateCB.Levels[1].PauseSeconds =  90;
     StateCB.Levels[2].WorkSeconds = 15; StateCB.Levels[2].PauseSeconds =  60;
@@ -67,14 +55,14 @@ void Init_SCB()
     printf("Reading SCB\r\n");
     StateCB.SCB_State &= 0xFF; // Mask the update bit
   }
-  printf("SCB Size %i Bytes\r\n", sizeof(StateCB));
-  printf("SCB State: %i\r\n", StateCB.SCB_State);
-  printf("UNIT S/N:  %s\r\n", StateCB.szUnitSerial);
-  printf("PCB  S/N:  %s\r\n", StateCB.szPCBSerial);
-  printf("Name: %s\r\n", StateCB.szUnitName);
-  printf("MAC:  %s\r\n", Get_MAC_Address_Str(szMesg));
-  printf("SSID: %s\r\n", StateCB.szSSID);
-  printf("PW:   %s\r\n", StateCB.szPW);
+  //  printf("SCB Size %i Bytes\r\n", sizeof(StateCB));
+  //  printf("SCB State: %i\r\n", StateCB.SCB_State);
+  //  printf("UNIT S/N:  %s\r\n", StateCB.szUnitSerial);
+  //  printf("PCB  S/N:  %s\r\n", StateCB.szPCBSerial);
+  //  printf("Name: %s\r\n", StateCB.szUnitName);
+  //  printf("MAC:  %s\r\n", Get_MAC_Address_Str(szMesg));
+  //  printf("SSID: %s\r\n", StateCB.szSSID);
+  //  printf("PW:   %s\r\n", StateCB.szPW);
 }
 void Set_Factory_Defaults()
 {
@@ -84,22 +72,28 @@ void Set_Factory_Defaults()
   for (i = 0; i < EVENTLISTSIZE; i++)
   {
     // Defaults for all events
-    StateCB.Events[i].StartHour = 8;
-    StateCB.Events[i].StartMinute = 30;
-    StateCB.Events[i].EndHour = 20;
-    StateCB.Events[i].EndMinute = 30;
+    StateCB.Events[i].StartHour = 0;
+    StateCB.Events[i].StartMinute = 0;
+    StateCB.Events[i].EndHour = 0;
+    StateCB.Events[i].EndMinute = 0;
     StateCB.Events[i].WorkSeconds = 15;
     StateCB.Events[i].PauseSeconds = 60;
-    StateCB.Events[i].DayOfWeek = (i == 0) ? 0b01111111 : 0b00000000; // all days for event 1 only
+    StateCB.Events[i].DayOfWeek = 0b00000000; // all days for event 1 only
     StateCB.Events[i].Level = 2; // "Level 3"
     StateCB.Events[i].FanSpeed = 1; // "Low"
-    Update_SCB();
   }
+  // Defaults for all events
+  StateCB.Events[0].StartHour = 8;
+  StateCB.Events[0].StartMinute = 30;
+  StateCB.Events[0].EndHour = 20;
+  StateCB.Events[0].EndMinute = 30;
+  StateCB.Events[0].DayOfWeek = 0b01111111; // all days for event 1 only
+  Update_SCB();
 }
 void Update_SCB()
 {
   EEPROM.put(StateCB_addr, StateCB);
   EEPROM.commit();
-  Serial.println("updated");
+  //  Serial.println("updated");
   //Init_Pump_State(); //Forces new program parameters to load
 }

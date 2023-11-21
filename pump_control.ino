@@ -13,7 +13,7 @@ void Handle_Pump_State(void) {
   if (PumpControl.EnabledFlag) {
     Marquee_State = MarqueeState_Event_Running;
     switch (PumpControl.PumpState) {
-      Serial.println("PumpControl.PumpState = " + String(PumpControl.PumpState));
+//        Serial.println("PumpControl.PumpState = " + String(PumpControl.PumpState));
       case ePumpStateBegin:
         PumpControl.PumpState = ePumpStateWorking;
         Seconds_Of_Use += PumpControl.WorkSecsRemaining;
@@ -57,7 +57,8 @@ void Handle_Pump_State(void) {
         //}
         break;
     }  // end switch
-  } else {
+  }
+  else {
     Marquee_State = MarqueeState_No_Event;
     // Serial.println("else condition, PumpControl.EnabledFlag");
     rtc_get(&CurrentTime, &CurrentDate);
@@ -82,45 +83,38 @@ void Handle_Pump_State(void) {
 }
 
 void PumpActuate(int bOn) {
+  int fanDuty = 0;
   digitalWrite(Pump_CTRL_Pin, bOn ? HIGH : LOW);
-  Serial.println("PumpActuate");
-}
-
-/*int GetAirFlowGood(void)
-{
-
-#ifdef SIMULATEFLOWSENSOR
-  return GetManufShunt() ? 0 : 1; // SHUNT ON --> No Flow detected
-  // SHUNT OFF --> Flow Good or not connected
-#else
-  //return HAL_GPIO_ReadPin(AirFlow_Good_GPIO_Port, AirFlow_Good_Pin) == GPIO_PIN_SET ? 1 : 0;
-  return (digitalRead(AirFlow_Good_Pin));
-
-
-}
-
-int GetManufShunt()
-{
-  return (digitalRead(MFG_Test_Pin));
-}
-
-void Check_Flow_Condition()
-{
-  int oPumpPin = digitalRead(Pump_CTRL_Pin);
-  if (oPumpPin == HIGH && !GetAirFlowGood())
-  {
-    PumpActuate(0);
-    //printf("Pump disabled due to no air flow detected...\r\n");
+  if (bOn) {
+    switch (PumpControl.FanSpeed) {
+      case   eSpeed_Off:
+        fanDuty = 0;
+        break;
+      case eSpeed_Low:
+        fanDuty = 90;
+        break;
+      case eSpeed_Med:
+        fanDuty = 180;
+        break;
+      case eSpeed_Hi:
+        fanDuty = 240;
+        break;
+    }
+  } else {
+    fanDuty = 0;
   }
-}*/
+  ledcWrite(0, fanDuty);
+//  Serial.print("PumpActuate: ");
+//  Serial.println(fanDuty);
+}
 
 void Init_Pump_State() {
-  Serial.println("Init_Pump_State");
+//  Serial.println("Init_Pump_State");
   PumpControl.EnabledFlag = 0;
 }
 
 void Start_Pump_Control(stEventControl* pControl) {
-  Serial.println("Start_Pump_Control");
+//  Serial.println("Start_Pump_Control");
   PumpControl.PumpState = ePumpStateBegin;
   PumpControl.WorkSecsRemaining = pControl->Work;
   PumpControl.PauseSecsRemaining = pControl->Pause;
@@ -130,7 +124,7 @@ void Start_Pump_Control(stEventControl* pControl) {
 }
 
 void End_Pump_Control() {
-  Serial.println("End_Pump_Control");
+//  Serial.println("End_Pump_Control");
   PumpControl.EnabledFlag = 0;
   pControlRec->State = eControl_None;
   PumpControl.PumpState = ePumpStateBegin;
@@ -147,7 +141,7 @@ void Schedule_Override(int bHoldFlag) {
   int EndSeconds;
   int CurrentSeconds;
 
-  Serial.println("Schedule_Override");
+//  Serial.println("Schedule_Override");
 
   CurrentSeconds = (CurrentTime.Hours * 60 * 60) + (CurrentTime.Minutes * 60) + CurrentTime.Seconds;
   StartSeconds = (OverrideControl.Start_Hour * 60 * 60) + (OverrideControl.Start_Minute * 60);

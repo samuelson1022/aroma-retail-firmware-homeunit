@@ -1,22 +1,19 @@
-//#include "rtc.h"
 
 int API_Get_Status(char* szSerial, int bUpdateRTCFlag, int* piAction)
 {
   char szResponse[128];
-  char szAPI[64];
-  char szTicks[16];
+  char szAPI[128];
   int iNextTimeSecs = 0;
   char* token;
   int iAction;
   int iHours, iMinutes, iSeconds, iDOW;
 
-  Serial.println("API_Get_Status");
+//  Serial.println("API_Get_Status");
 
   // Get status from API
   sprintf(szAPI, "%s/%s/%s", SERVER, API_STATUS, szSerial);
   Serial.println(szAPI);
   http.begin(szAPI);
-  // String serverPath = serverName + "/ar_Status/Aroma-100-230420";
   *piAction = 0;
 
   // http.begin(serverPath.c_str());
@@ -26,17 +23,17 @@ int API_Get_Status(char* szSerial, int bUpdateRTCFlag, int* piAction)
     String payload = http.getString();
     payload.remove(0, 9);
     payload.toCharArray(szResponse, 128);
-    Serial.println("HTTP code for GET Status = " + String(httpCode));
-    Serial.println(payload);
+//    Serial.println("HTTP code for GET Status = " + String(httpCode));
+//    Serial.println(payload);
   } else {
-    Serial.println("Error on HTTP ACK request");
+//    Serial.println("Error on HTTP ACK request");
   }
 
   if (httpCode == 200)
   {
     // Get RTC clock contents
     token = strtok(szResponse, "|"); if (token == NULL) return 0;
-    Serial.println(token);
+//    Serial.println(token);
     iAction = atoi(token);
     token = strtok(NULL, "|"); if (token == NULL) return 0;
     iHours = atoi(token);
@@ -52,33 +49,22 @@ int API_Get_Status(char* szSerial, int bUpdateRTCFlag, int* piAction)
     iNextTimeSecs = iNextTimeSecs < 15 ? 15 : iNextTimeSecs;   // minimum 15 seconds
     RequestStatusMOD = iNextTimeSecs * 1000;   // convert to msec ticks
 
-    Serial.print("iAction = " + String(iAction));
-    Serial.print("iHours = " + String(iHours));
-
-
     if (iAction > 0) printf("Status API Action = %i\r\n", iAction);
     // Got the full payload, set clock if requested
     if (bUpdateRTCFlag)
     {
-      rtc_get(&GetTime, &GetDate); //get time and date
-      int dowDiff = iDOW - GetDate.WeekDay;
-      int iDate = GetDate.Date;
-      if(dowDiff < 0) {
-        if(iDate > 7) iDate = iDate + dowDiff;
-        else iDate = iDate + 7 + dowDiff;
-      } else if (dowDiff > 0) {
-        if(iDate > 20) iDate -7 + dowDiff;
-        else iDate = iDate + dowDiff;
-      }
-      rtc_set(iHours, iMinutes, iSeconds, iDate, GetDate.Month + 1, GetDate.Year);
-      
+      myRTC.setHour(iHours);
+      myRTC.setMinute(iMinutes);
+      myRTC.setSecond(iSeconds);
+      myRTC.setDoW(iDOW);
     }
     // All good, pass the action code through
     *piAction = iAction;
   }
   else
   {
-    Serial.println("Status request timed out\r\n");
+//    Serial.println("Status request timed out\r\n");
+//    Serial.println(httpCode);
   }
   return httpCode;
 }
@@ -86,11 +72,11 @@ int API_Get_Status(char* szSerial, int bUpdateRTCFlag, int* piAction)
 
 int API_Get_Events(char* szSerial)
 {
-  char szResponse[256];
-  char szMesg[64];
-  char szAPI[64];
+  char szResponse[350];
+  char szAPI[128];
   int i;
   char* token;
+  uint8_t doWTemp, count;
 
   // Events
   //STHR|STMIN|EHR|EMIN|DOWBM|W|P|F|..(4 more sets)
@@ -101,19 +87,16 @@ int API_Get_Events(char* szSerial)
   Serial.println(szAPI);
   http.begin(szAPI);
 
-  // String serverPath = serverName + "/ar_GetEvents/Aroma-100-230420";
-
-  // http.begin(serverPath.c_str());
   int httpCode = http.GET();
 
   if (httpCode > 0) {
     String payload = http.getString();    
     payload.remove(0, 9);
-    payload.toCharArray(szResponse, 256);
+    payload.toCharArray(szResponse, 350);
     Serial.println("HTTP code for GET Events = "+ String(httpCode));
     Serial.println(payload);
   } else {
-    Serial.println("Error on HTTP ACK request");
+//    Serial.println("Error on HTTP ACK request");
   }
 
   if (httpCode == 200)
@@ -141,19 +124,26 @@ int API_Get_Events(char* szSerial)
       token = strtok(NULL, "|"); if (token == NULL) return 0;
       StateCB.Events[i].EndMinute = atoi(token);
       token = strtok(NULL, "|"); if (token == NULL) return 0;
-      StateCB.Events[i].DayOfWeek = atoi(token);
+      doWTemp = atoi(token);
       token = strtok(NULL, "|"); if (token == NULL) return 0;
       StateCB.Events[i].WorkSeconds = atoi(token);
       token = strtok(NULL, "|"); if (token == NULL) return 0;
       StateCB.Events[i].PauseSeconds = atoi(token);
       token = strtok(NULL, "|"); if (token == NULL) return 0;
       StateCB.Events[i].FanSpeed = atoi(token);
+
+      StateCB.Events[i].DayOfWeek = 0x00;
+      for (count = 0; count < 7; count ++) {
+        StateCB.Events[i].DayOfWeek = StateCB.Events[i].DayOfWeek | (((doWTemp >> count) & 0x01) << (6 - count));
+      }
+      Serial.println(StateCB.Events[i].DayOfWeek);
+      
     }
     // Store the SCB
     Update_SCB();
 
     // Got the full payload, acknowledge it
-    Serial.println(szSerial);
+//    Serial.println(szSerial);
     API_Get_ACK(szSerial, API_EVENTS);
   }
   return httpCode;
@@ -167,18 +157,18 @@ int API_Get_ACK(char* szSerial, char* ACK_Type)
   sprintf(szAPI, "%s/%s/%s/%s", SERVER, API_ACK, szSerial, ACK_Type);
 
   //String serverPath = serverName + "/ar_ACK/Aroma-005-220221/ar_GetEvents";
-  Serial.println(szAPI);
+//  Serial.println(szAPI);
 
   http.begin(szAPI);
   int httpCode = http.GET();
   String payload = http.getString();
   payload.toCharArray(szResponse, 256);
-  Serial.println("HTTP code for GET Ack = "+ String(httpCode));
-  Serial.println(payload);
+//  Serial.println("HTTP code for GET Ack = "+ String(httpCode));
+//  Serial.println(payload);
 
   if (httpCode > 0) {
   } else {
-    Serial.println("Error on HTTP ACK request");
+//    Serial.println("Error on HTTP ACK request");
   }
 
   return httpCode;
@@ -189,7 +179,6 @@ int API_Get_FriendlyName(char* szSerial)
 {
   //arapi.aromaretail.com/api/v1/ar_FriendlyName/Aroma-003-210825
   char szResponse[256];
-  char szMesg[64];
   char szAPI[128];
   int i;
   char* token;
@@ -204,8 +193,8 @@ int API_Get_FriendlyName(char* szSerial)
     String payload = http.getString();
     payload.remove(0, 9);
     payload.toCharArray(szResponse, 256);
-    Serial.println("HTTP code for GET FriendlyName = "+ String(httpCode));
-    Serial.println(payload);
+//    Serial.println("HTTP code for GET FriendlyName = "+ String(httpCode));
+//    Serial.println(payload);
     int iTransfer = strlen(szResponse) > (sizeof(StateCB.szUnitName) - 1) ? sizeof(StateCB.szUnitName) - 1 : strlen(szResponse);
     strncpy(StateCB.szUnitName, szResponse, iTransfer);
     StateCB.szUnitName[iTransfer] = 0x0;
@@ -214,7 +203,7 @@ int API_Get_FriendlyName(char* szSerial)
     // Got the full payload, acknowledge it
     API_Get_ACK(szSerial, API_FRIENDLYNAME);
   } else {
-    Serial.println("Error on HTTP API_Get_FriendlyName request");
+//    Serial.println("Error on HTTP API_Get_FriendlyName request");
   }
   return httpCode;
 }
@@ -225,7 +214,6 @@ int API_Get_Override(char* szSerial)
   char szResponse[128];
   char szMesg[64];
   char szAPI[128];
-  char szTicks[16];
   int iAction = 0;
   int iNextTimeSecs = 0;
   char* token;
@@ -240,10 +228,10 @@ int API_Get_Override(char* szSerial)
     String payload = http.getString();
     payload.remove(0, 9);
     payload.toCharArray(szResponse, 128);
-    Serial.println("HTTP code for GET Override = "+ String(httpCode));
-    Serial.println(payload);
+//    Serial.println("HTTP code for GET Override = "+ String(httpCode));
+//    Serial.println(payload);
   } else {
-    Serial.println("Error on HTTP ACK request");
+//    Serial.println("Error on HTTP ACK request");
   }
   
   //printf("Override requested, Timeout = %i\r\n", httpCode);
@@ -303,5 +291,122 @@ int API_Get_OverrideCancel(char* szSerial)
   printf("Override canceled\r\n");
   End_Pump_Control();
   httpCode = API_Get_ACK(szSerial, API_OVERRIDECANCEL);
+  return httpCode;
+}
+
+int API_Get_FWUpdateInfo(char* szSerial)
+{
+  char szResponse[256];
+  char szAPI[64];
+  int i;
+  char* token;
+
+  // FW INFO
+  //BYTELEN|CRC|
+
+  sprintf(szAPI, "%s/%s/%s", SERVER, API_FWINFO, szSerial);
+  Serial.println(szAPI);
+  //int httpCode = API_Get_Request(szAPI, szResponse);
+  http.begin(szAPI);
+  int httpCode = http.GET();
+  
+  if (httpCode > 0) {
+    String payload = http.getString();
+    payload.remove(0, 9);
+    payload.toCharArray(szResponse, 128);
+    Serial.println("HTTP code for GET FW Update Info = "+ String(httpCode));
+    Serial.println(payload);
+  } else {
+    Serial.println("Error on HTTP ACK request");
+  }
+  
+  if (httpCode == 200)
+  {
+    printf("FWINFO response: %s\r\n", szResponse);
+    // Parse fw update parameters
+    token = strtok(szResponse, "|"); if (token == NULL) return 0;
+    FWUpdate_Rec.ByteCount = atoi(token);
+    token = strtok(NULL, "|"); if (token == NULL) return 0;
+    FWUpdate_Rec.uCRC = atoi(token);
+  }
+  return httpCode;
+}
+
+int API_Get_FWUpdatePackets(char* szSerial)
+{
+  char szResponse[256];
+  char szAPI[128];
+  int i;
+  int iPigTail;
+  int iPacketNum;
+  int iPacketLength;
+  char* token;
+
+  // FW Packet
+  // PACKET(Index)|
+  File file = SPIFFS.open("/update.bin", FILE_APPEND);
+  sprintf(szAPI, "%s/%s/%s/%i", SERVER, API_FWPACKET, szSerial, FWUpdate_Rec.PacketIndex);
+  Serial.println(szAPI);
+  //int httpCode = API_Get_Request(szAPI, szResponse);
+
+  http.begin(szAPI);
+  int httpCode = http.GET();
+  
+  if (httpCode > 0) {
+    String payload = http.getString();
+    payload.remove(0, 11);
+    payload.toCharArray(szResponse, 128);
+    Serial.println("HTTP code for GET FWUpdatePackets = "+ String(httpCode));
+    Serial.println(payload);
+  } else {
+    Serial.println("Error on HTTP FWUpdatePackets request");
+  }
+  
+  if (httpCode == 200)
+  {
+    printf("FWPACKET[%i]: %s\r\n", FWUpdate_Rec.PacketIndex, szResponse);
+    // Parse fw packets
+    token = strtok(szResponse, "|"); if (token == NULL) return 0;
+    iPacketLength = FWUpdate_Rec.ByteCount * 2; // 114580
+    iPacketNum = iPacketLength / PACKETSIZEBYTES; // 895
+    iPigTail = (iPacketLength % PACKETSIZEBYTES) > 0 ? 1 : 0; //20
+    if (FWUpdate_Rec.PacketIndex < iPacketNum)
+    {
+      if ((FWUpdate_Rec.PacketIndex == iPacketNum - 1) && !iPigTail)
+      {
+        //FlashPacket(FWUpdate_Rec.PacketIndex, token, 1);  // last segment
+        if (!file.print(token))
+        {
+          Serial.println("Appending file");
+        }
+        FWUpdate_State = eFWUpdate_Idle;
+        API_Get_ACK(StateCB.szUnitSerial, API_FWPACKET);
+        file.close();
+        updateFromFS();
+      }
+      else
+      {
+        //FlashPacket(FWUpdate_Rec.PacketIndex, token, 0);   // not last one
+        if (!file.print(token))
+        {
+          Serial.println("Appending file");
+        }
+        file.close();
+        FWUpdate_Rec.PacketIndex++;
+      }
+    }
+    else
+    {
+      //FlashPacket(FWUpdate_Rec.PacketIndex, token, 1);
+      if (!file.print(token))
+      {
+          Serial.println("Appending file");
+      }
+      FWUpdate_State = eFWUpdate_Idle;
+      API_Get_ACK(StateCB.szUnitSerial, API_FWPACKET);
+      file.close();
+      updateFromFS();
+    }
+  }
   return httpCode;
 }

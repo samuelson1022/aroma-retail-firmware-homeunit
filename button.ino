@@ -1,5 +1,4 @@
 
-#include "rtc.h"
 #include "button.h"
 #include "menu.h"
 // #include "lcd.h"
@@ -9,9 +8,7 @@ eButtonType Button_Type = eButton_None;
 ePressState Button_Press = ePress_None;
 // int bRequest_Handle_Button_Press = 0;
 extern TimePreviousState prevTimeState;
-int eventDoWSetIndex = 0;
 
-eMenuType MenuType;
 void Menu_Display(void);
 
 void Button_Scan() {
@@ -37,6 +34,10 @@ void Button_Scan() {
           // Serial.println("Button Press Repeat!");
           Button_Press = ePress_Repeat;
         }
+        if (ButtonDownMsec >= ButtonRepeat10s) {
+          // Serial.println("Button Press Repeat!");
+          Button_Press = ePress_10s;
+        }
       } else {
         if (ButtonDownMsec >= ButtonShortMsec) {
           // Button was released for a short press
@@ -61,10 +62,12 @@ void Button_Scan() {
   }
 }
 
+unsigned long lastModeTime = 0;
 eButtonType GetButtonsDown() {
   eButtonType oButton = eButton_None;
   if (digitalRead(BUTTON_MODE) == LOW) {
     oButton = eButton_Mode;
+    lastModeTime = millis();
   }
 
   if (digitalRead(BUTTON_SET) == LOW) {
@@ -81,6 +84,7 @@ eButtonType GetButtonsDown() {
 
   return oButton;
 }
+
 
 void Handle_Button_Press() {
   switch (Button_Type) {
@@ -127,6 +131,12 @@ void Handle_Button_Press() {
           break;
         case ePress_Repeat:
           break;
+        case ePress_10s:
+          //          Init_SCB();
+          Set_Factory_Defaults();
+          Serial.println("Mode Button Pressed 10 secs");
+          Button_Press = ePress_None;
+          break;
       }
       break;
   }
@@ -146,17 +156,25 @@ void Handle_Set_Short() {
       MenuType = eMenu_Aroma_Set_Day_Of_Week;
       break;
     case eMenu_Aroma_Set_Day_Of_Week:
-      SaveToRTC();
+      myRTC.setHour(prevTimeState.hour);
+      myRTC.setMinute(prevTimeState.minute);
+      myRTC.setSecond(0);
+      myRTC.setDoW(prevTimeState.dayOfWeek);
+
       prevTimeState.preMarqueeState = MarqueeState_Updating_FW;
       MenuType = eMenu_Aroma_Home;
       break;
     case eMenu_Aroma_Set_Events:
       MenuType = eMenu_Aroma_Set_Event_Start_Hour;
+      prevTimeState.hour = StateCB.Events[prevTimeState.eventLevel - 1].StartHour;
+      prevTimeState.minute = StateCB.Events[prevTimeState.eventLevel - 1].StartMinute;
+      prevTimeState.dayOfWeek = StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek;
       break;
     case eMenu_Aroma_Set_Event_Start_Hour:
       MenuType = eMenu_Aroma_Set_Event_Start_Minute;
       break;
     case eMenu_Aroma_Set_Event_Start_Minute:
+      eventDoWSetIndex = 0;
       MenuType = eMenu_Aroma_Set_Event_Start_Day_Of_Week;
       break;
     case eMenu_Aroma_Set_Event_Start_Day_Of_Week:
@@ -182,11 +200,19 @@ void Handle_Mode_Short() {
   switch (MenuType) {
     case eMenu_Aroma_Home:
       prevTimeState.eventLevel = 1;
-      prevTimeState.hour = StateCB.Events[prevTimeState.eventLevel - 1].StartHour;
-      prevTimeState.minute = StateCB.Events[prevTimeState.eventLevel - 1].StartMinute;
-      prevTimeState.dayOfWeek = StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek;
-      prevTimeState.workLevel = StateCB.Events[prevTimeState.eventLevel - 1].Level;
 
+      //      if (StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek == 0 && StateCB.Events[prevTimeState.eventLevel - 1].StartMinute == 0 &&  StateCB.Events[prevTimeState.eventLevel - 1].EndHour == 0 && StateCB.Events[prevTimeState.eventLevel - 1].EndMinute == 0) {
+      if (StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek == 0) {
+        prevTimeState.hour = 48;
+        prevTimeState.minute = 120;
+        prevTimeState.dayOfWeek = 0;
+      }
+      else {
+        prevTimeState.hour = StateCB.Events[prevTimeState.eventLevel - 1].StartHour;
+        prevTimeState.minute = StateCB.Events[prevTimeState.eventLevel - 1].StartMinute;
+        prevTimeState.dayOfWeek = StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek;
+        prevTimeState.workLevel = StateCB.Events[prevTimeState.eventLevel - 1].Level;
+      }
       showEventDisplayOnce = false;
       MenuType = eMenu_Aroma_Set_Events;
       break;
@@ -194,15 +220,41 @@ void Handle_Mode_Short() {
     case eMenu_Aroma_Set_Event_Start_Hour:
     case eMenu_Aroma_Set_Event_Start_Minute:
     case eMenu_Aroma_Set_Event_Start_Day_Of_Week:
-      StateCB.Events[prevTimeState.eventLevel - 1].StartHour = prevTimeState.hour;
-      StateCB.Events[prevTimeState.eventLevel - 1].StartMinute = prevTimeState.minute;
-      StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek = prevTimeState.dayOfWeek;
-      Update_SCB();
-      prevTimeState.hour = StateCB.Events[prevTimeState.eventLevel - 1].EndHour;
-      prevTimeState.minute = StateCB.Events[prevTimeState.eventLevel - 1].EndMinute;
+      if (prevTimeState.hour > 24) {
+        prevTimeState.eventLevel++;
 
-      showEventDisplayOnce = false;
-      MenuType = eMenu_Aroma_Set_Event_End;
+        if (prevTimeState.eventLevel > EVENTLISTSIZE) {
+          prevTimeState.preMarqueeState = MarqueeState_Updating_FW;
+          MenuType = eMenu_Aroma_Home;
+          prevTimeState.dayOfWeek = 7;  // Random value to show the current DoW
+        } else {
+          //          if (StateCB.Events[prevTimeState.eventLevel - 1].StartHour == 0 && StateCB.Events[prevTimeState.eventLevel - 1].StartMinute == 0 &&  StateCB.Events[prevTimeState.eventLevel - 1].EndHour == 0 && StateCB.Events[prevTimeState.eventLevel - 1].EndMinute == 0) {
+          if (StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek == 0) {
+            prevTimeState.hour = 48;
+            prevTimeState.minute = 120;
+            prevTimeState.dayOfWeek = 0;
+          }
+          else {
+            prevTimeState.hour = StateCB.Events[prevTimeState.eventLevel - 1].StartHour;
+            prevTimeState.minute = StateCB.Events[prevTimeState.eventLevel - 1].StartMinute;
+            prevTimeState.dayOfWeek = StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek;
+            prevTimeState.workLevel = StateCB.Events[prevTimeState.eventLevel - 1].Level;
+          }
+          showEventDisplayOnce = false;
+          MenuType = eMenu_Aroma_Set_Events;
+        }
+      }
+      else {
+        StateCB.Events[prevTimeState.eventLevel - 1].StartHour = prevTimeState.hour;
+        StateCB.Events[prevTimeState.eventLevel - 1].StartMinute = prevTimeState.minute;
+        StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek = prevTimeState.dayOfWeek;
+        Update_SCB();
+        prevTimeState.hour = StateCB.Events[prevTimeState.eventLevel - 1].EndHour;
+        prevTimeState.minute = StateCB.Events[prevTimeState.eventLevel - 1].EndMinute;
+
+        showEventDisplayOnce = false;
+        MenuType = eMenu_Aroma_Set_Event_End;
+      }
       break;
     case eMenu_Aroma_Set_Event_End:
     case eMenu_Aroma_Set_Event_End_Hour:
@@ -221,10 +273,18 @@ void Handle_Mode_Short() {
         MenuType = eMenu_Aroma_Home;
         prevTimeState.dayOfWeek = 7;  // Random value to show the current DoW
       } else {
-        prevTimeState.hour = StateCB.Events[prevTimeState.eventLevel - 1].StartHour;
-        prevTimeState.minute = StateCB.Events[prevTimeState.eventLevel - 1].StartMinute;
-        prevTimeState.dayOfWeek = StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek;
-        prevTimeState.workLevel = StateCB.Events[prevTimeState.eventLevel - 1].Level;
+        //        if (StateCB.Events[prevTimeState.eventLevel - 1].StartHour == 0 && StateCB.Events[prevTimeState.eventLevel - 1].StartMinute == 0 &&  StateCB.Events[prevTimeState.eventLevel - 1].EndHour == 0 && StateCB.Events[prevTimeState.eventLevel - 1].EndMinute == 0) {
+        if (StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek == 0) {
+          prevTimeState.hour = 99;
+          prevTimeState.minute = 99;
+          prevTimeState.dayOfWeek = 0;
+        }
+        else {
+          prevTimeState.hour = StateCB.Events[prevTimeState.eventLevel - 1].StartHour;
+          prevTimeState.minute = StateCB.Events[prevTimeState.eventLevel - 1].StartMinute;
+          prevTimeState.dayOfWeek = StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek;
+          prevTimeState.workLevel = StateCB.Events[prevTimeState.eventLevel - 1].Level;
+        }
         showEventDisplayOnce = false;
         MenuType = eMenu_Aroma_Set_Events;
       }
@@ -248,8 +308,13 @@ void Handle_Up_Short() {
       break;
     case eMenu_Aroma_Set_Event_Start_Day_Of_Week:
     case eMenu_Aroma_Set_Event_End_Day_Of_Week:
-      eventDoWSetIndex = (eventDoWSetIndex + 1) % 15;
-      prevTimeState.dayOfWeek = eventDoWSet[eventDoWSetIndex];
+      if ((prevTimeState.dayOfWeek & (1 << eventDoWSetIndex)) == (1 << eventDoWSetIndex))
+        prevTimeState.dayOfWeek = prevTimeState.dayOfWeek & (~(1 << eventDoWSetIndex));
+      else
+        prevTimeState.dayOfWeek = prevTimeState.dayOfWeek | (1 << eventDoWSetIndex);
+
+      //      eventDoWSetIndex = (eventDoWSetIndex + 1) % 15;
+      //      prevTimeState.dayOfWeek = eventDoWSet[eventDoWSetIndex];
       break;
     case eMenu_Aroma_Set_Event_Work_Level:
       prevTimeState.workLevel = (prevTimeState.workLevel + 1) % 10;
@@ -268,22 +333,22 @@ void Handle_Down_Short() {
     case eMenu_Aroma_Set_Event_End_Hour:
       iDiff = prevTimeState.hour - 1;
       iDiff = iDiff < 0 ? 24 + iDiff : iDiff;
-      prevTimeState.hour = iDiff;
+      prevTimeState.hour = iDiff % 24;
       break;
     case eMenu_Aroma_Set_Minutes:
     case eMenu_Aroma_Set_Event_Start_Minute:
     case eMenu_Aroma_Set_Event_End_Minute:
       iDiff = prevTimeState.minute - 1;
       iDiff = iDiff < 0 ? 60 + iDiff : iDiff;
-      prevTimeState.minute = iDiff;
+      prevTimeState.minute = iDiff % 60;
       break;
     case eMenu_Aroma_Set_Day_Of_Week:
       prevTimeState.dayOfWeek = (prevTimeState.dayOfWeek + 6) % 7;
       break;
     case eMenu_Aroma_Set_Event_Start_Day_Of_Week:
     case eMenu_Aroma_Set_Event_End_Day_Of_Week:
-      eventDoWSetIndex = (eventDoWSetIndex + 14) % 15;
-      prevTimeState.dayOfWeek = eventDoWSet[eventDoWSetIndex];
+      eventDoWSetIndex = (eventDoWSetIndex + 1) % 7;
+      //      prevTimeState.dayOfWeek = eventDoWSet[eventDoWSetIndex];
       break;
     case eMenu_Aroma_Set_Event_Work_Level:
       iDiff = prevTimeState.workLevel - 1;

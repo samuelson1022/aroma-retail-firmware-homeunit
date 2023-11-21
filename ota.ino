@@ -45,14 +45,14 @@ void Boot_System()
 void FWUpdate_GetFWInfo()
 {
   int iTimeout = API_Get_FWUpdateInfo(StateCB.szUnitSerial);
-  if (iTimeout)
-  {
-    FWUpdate_State = eFWUpdate_Idle;
-  }
-  else
+  if (iTimeout == 200)
   {
     FWUpdate_Rec.PacketIndex = 0;
     FWUpdate_State = eFWUpdate_GetFWPackets;
+  }
+  else
+  {
+    FWUpdate_State = eFWUpdate_Idle;
   }
 }
 

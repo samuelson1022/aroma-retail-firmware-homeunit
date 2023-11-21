@@ -1,193 +1,218 @@
-#define TEXT "abc MWy 123 |"  // Text that will be printed on screen in any font
+#include "HT1621.h"
 
-#include "lcd.h"
-#include "SPI.h"
-#include "TFT_eSPI.h"
-#include "ArialNarrow27pt7b.h"
-#include "TickingTimebombBB18pt7b.h"
-#include "TickingTimebombBB46pt7b.h"
-
-#define REF_X 15
-#define REF_Y 35
+#define LCD_CS_PIN 23
+#define LCD_WR_PIN 13
+#define LCD_DATA_PIN 16
+#define BACKLIGHT_PIN 17
 
 
-TFT_eSPI tft = TFT_eSPI(170, 320);
-
-// X, Y, width, height, yoffset
-const int characterDayPos[7][5] = {
-  { 258, 0, 24, 16, 9 },  // SUN
-  { 80, 0, 28, 16, 9 },   // MON
-  { 114, 0, 23, 16, 9 },  // TUE
-  { 143, 0, 27, 16, 9 },  // WED
-  { 176, 0, 23, 16, 9 },  // THU
-  { 205, 0, 18, 16, 9 },  // FRI
-  { 229, 0, 23, 16, 9 }   // SAT
-};
-
-String characterDay[7] = {
-  "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"
-};
-
-const int characterWorkPos[5] = { 0, 21, 36, 14, 9 };
-const int characterPausePos[5] = { 0, 35, 40, 14, 9 };
-const int characterEventPos[5] = { 0, 49, 38, 14, 9 };
-const int characterONPos[5] = { 0, 63, 17, 14, 9 };
-const int characterOffPos[5] = { 0, 77, 23, 14, 9 };
-const int characterHourPos[5] = { 63, 13, 86, 90, 58 };
-const int characterColonPos[5] = { 149, 13, 16, 90, 43 };
-const int characterMinutePos[5] = { 175, 13, 86, 90, 58 };
-const int characterLevelPos[5] = { 35, 60, 17, 35, 22 };
+uint8_t section[32];
 
 void lcdInit() {
   // if the display has CS pin try with SPI_MODE0
-  tft.begin();
-  tft.setRotation(3);
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  lcd.begin(LCD_CS_PIN, LCD_WR_PIN, LCD_DATA_PIN, BACKLIGHT_PIN);
+  lcd.backlight();
+  lcd.clear();
 }
 
-uint8_t prevHourValue = 0;
 void showHour(uint8_t hourValue, bool visible) {
-  tft.setTextPadding(characterHourPos[3]);
-  tft.setFreeFont(&TickingTimebombBB46pt7b);
+  section[6] = section[6] & 0x80;
+  section[8] = section[8] & 0x80;
   if (visible) {
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    if (hourValue < 10)
-      tft.drawString(String("0") + String(hourValue), REF_X + characterHourPos[0], REF_Y + characterHourPos[1]);  // Print the string name of the font
-    else
-      tft.drawString(String(hourValue), REF_X + characterHourPos[0], REF_Y + characterHourPos[1]);  // Print the string name of the font
-  } else {
-    tft.setTextColor(TFT_BLACK, TFT_BLACK);
-    if (prevHourValue < 10)
-      tft.drawString(String("0") + String(prevHourValue), REF_X + characterHourPos[0], REF_Y + characterHourPos[1]);  // Print the string name of the font
-    else
-      tft.drawString(String(prevHourValue), REF_X + characterHourPos[0], REF_Y + characterHourPos[1]);  // Print the string name of the font
-  }
-  prevHourValue = hourValue;
-}
-
-uint8_t prevMinuteValue = 0;
-void showMinute(uint8_t minuteValue, bool visible) {
-  tft.setFreeFont(&TickingTimebombBB46pt7b);
-  tft.setTextPadding(characterMinutePos[3]);
-
-  if (visible) {
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    if (minuteValue < 10)
-      tft.drawString(String("0") + String(minuteValue), REF_X + characterMinutePos[0], REF_Y + characterMinutePos[1]);  // Print the string name of the font
-    else
-      tft.drawString(String(minuteValue), REF_X + characterMinutePos[0], REF_Y + characterMinutePos[1]);  // Print the string name of the font
-  } else {
-    tft.setTextColor(TFT_BLACK, TFT_BLACK);
-    if (prevMinuteValue < 10)
-      tft.drawString(String("0") + String(prevMinuteValue), REF_X + characterMinutePos[0], REF_Y + characterMinutePos[1]);  // Print the string name of the font
-    else
-      tft.drawString(String(prevMinuteValue), REF_X + characterMinutePos[0], REF_Y + characterMinutePos[1]);  // Print the string name of the font
-  }
-  prevMinuteValue = minuteValue;
-}
-
-void showColon(bool visible) {
-  if (visible) {
-    tft.setTextColor(TFT_WHITE);
-  } else {
-    tft.setTextColor(TFT_BLACK);
-  }
-  tft.setTextPadding(characterColonPos[3]);
-  tft.setFreeFont(&TickingTimebombBB46pt7b);
-  tft.drawString(":", REF_X + characterColonPos[0], REF_Y + characterColonPos[1]);  // Print the string name of the font
-}
-
-void showDayOfWeek(uint8_t dayOfWeekValue, bool visible) {
-  tft.setFreeFont(&ArialNarrow27pt7b);
-  tft.setTextPadding(characterDayPos[0][3]);
-  if (visible) {
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);  // Clear screen
-    for (int i = 0; i < 7; i++) {
-      if ((dayOfWeekValue >> i) & 1 == 1) {
-        tft.drawString(characterDay[i], REF_X + characterDayPos[i][0], REF_Y + characterDayPos[i][1]);
+    if (hourValue < 10) {
+      section[6] |= lcd.charToSegBits(0) << 4;
+      section[8] |= lcd.charToSegBits(hourValue) << 4;
+      lcd.wrone(0x05, lcd.charToSegBits(0));
+      lcd.wrone(0x06, section[6]);
+      lcd.wrone(0x07, lcd.charToSegBits(hourValue));
+      lcd.wrone(0x08, section[8]);
+    }
+    else {
+      if (hourValue > 24) {
+        section[6] |= lcd.charToSegBits(10) << 4;
+        section[8] |= lcd.charToSegBits(10) << 4;
+        lcd.wrone(0x05, lcd.charToSegBits(10));
+        lcd.wrone(0x06, section[6]);
+        lcd.wrone(0x07, lcd.charToSegBits(10));
+        lcd.wrone(0x08, section[8]);
+      }
+      else {
+        section[6] |= lcd.charToSegBits(hourValue / 10) << 4;
+        section[8] |= lcd.charToSegBits(hourValue % 10) << 4;
+        lcd.wrone(0x05, lcd.charToSegBits(hourValue / 10));
+        lcd.wrone(0x06, section[6]);
+        lcd.wrone(0x07, lcd.charToSegBits(hourValue % 10));
+        lcd.wrone(0x08, section[8]);
       }
     }
   } else {
-    tft.setTextColor(TFT_BLACK, TFT_BLACK);  // Clear screen
-    for (int i = 0; i < 7; i++) {
-      tft.drawString(characterDay[i], REF_X + characterDayPos[i][0], REF_Y + characterDayPos[i][1]);
-    }
+    lcd.wrone(0x05, 0);
+    lcd.wrone(0x06, section[6]);
+    lcd.wrone(0x07, 0);
+    lcd.wrone(0x08, section[8]);
   }
+}
+
+uint8_t convertSegData(uint8_t data)
+{
+  uint8_t segData = 0;
+  segData = data << 3;
+  return segData;
+}
+
+void showMinute(uint8_t minuteValue, bool visible) {
+  section[23] = section[23] & 0x80;
+  section[25] = section[25] & 0x80;
+  if (visible) {
+    if (minuteValue < 10) {
+      section[23] |= lcd.charToSegBits(0) << 4;
+      section[25] |= lcd.charToSegBits(minuteValue) << 4;
+      lcd.wrone(9, lcd.charToSegBits(0));
+      lcd.wrone(23, section[23]);
+      lcd.wrone(24, lcd.charToSegBits(minuteValue));
+      lcd.wrone(25, section[25]);
+    }
+    else {
+      if (MenuType != eMenu_Aroma_Set_Event_Work_Level && minuteValue > 60) {
+        section[23] |= lcd.charToSegBits(10) << 4;
+        section[25] |= lcd.charToSegBits(10) << 4;
+        lcd.wrone(9, lcd.charToSegBits(10));
+        lcd.wrone(23, section[23]);
+        lcd.wrone(24, lcd.charToSegBits(10));
+        lcd.wrone(25, section[25]);
+      }
+      else {
+        section[23] |= lcd.charToSegBits(minuteValue / 10) << 4;
+        section[25] |= lcd.charToSegBits(minuteValue % 10) << 4;
+        lcd.wrone(9, lcd.charToSegBits(minuteValue / 10));
+        lcd.wrone(23, section[23]);
+        lcd.wrone(24, lcd.charToSegBits(minuteValue % 10));
+        lcd.wrone(25, section[25]);
+      }
+    }
+  } else {
+    lcd.wrone(9, 0);
+    lcd.wrone(23, section[23]);
+    lcd.wrone(24, 0);
+    lcd.wrone(25, section[25]);
+  }
+}
+
+void showColon(bool visible) {
+  section[8] &= 0x70;
+  section[8] |= visible << 7;
+  lcd.wrone(8, section[8]);
+}
+
+void showDayOfWeek(uint8_t dayOfWeekValue, bool visible) {
+  section[31] &= 0x70;
+  section[28] &= 0b10000000;
+  section[26] &= 0b10000000;
+
+  if (visible) {
+
+    // Mon
+    section[31] |= (dayOfWeekValue & 1) << 7;
+
+    // Tue
+    dayOfWeekValue >>= 1;
+    section[28] |= (dayOfWeekValue & 1) << 6;
+
+    // Wed
+    dayOfWeekValue >>= 1;
+    section[28] |= (dayOfWeekValue & 1) << 5;
+
+    // Thurs
+    dayOfWeekValue >>= 1;
+    section[28] |= (dayOfWeekValue & 1) << 4;
+
+    // Fri
+    dayOfWeekValue >>= 1;
+    section[26] |= (dayOfWeekValue & 1) << 4;
+
+    // Sat
+    dayOfWeekValue >>= 1;
+    section[26] |= (dayOfWeekValue & 1) << 5;
+    
+    // SUN
+    dayOfWeekValue >>= 1;
+    section[26] |= (dayOfWeekValue & 1) << 6;
+  }
+
+  lcd.wrone(26, section[26]);
+  lcd.wrone(28, section[28]);
+  lcd.wrone(31, section[31]);
+}
+
+void showPercent(bool visible) {
+  section[26] &= 0b01110000;
+  section[26] |= visible << 7;
+  lcd.wrone(26, section[26]);
+}
+
+void showWind(uint8_t index) {
+  section[6] &= 0x70;
+  section[23] &= 0x70;
+  section[28] &= 0x70;
+
+  switch (index) {
+    case 1:
+      section[28] |= 1 << 7;
+      break;
+    case 2:
+      section[23] |= 1 << 7;
+      break;
+    case 3:
+      section[6] |= 1 << 7;
+      break;
+    case 0:
+    default:
+      break;
+  }
+  lcd.wrone(6, section[6]);
+  lcd.wrone(23, section[23]);
+  lcd.wrone(28, section[28]);
 }
 
 void showWorkString(bool visible) {
-  if (visible) {
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  } else {
-    tft.setTextColor(TFT_BLACK, TFT_BLACK);
-  }
-
-  tft.setTextPadding(characterWorkPos[3]);
-  tft.setFreeFont(&ArialNarrow27pt7b);
-  tft.drawString("WORK", REF_X, REF_Y + characterWorkPos[1]);
+  section[27] &= 0b11010000;
+  section[27] |= visible << 5;
+  lcd.wrone(27, section[27]);
 }
 
 void showPauseString(bool visible) {
-  if (visible) {
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  } else {
-    tft.setTextColor(TFT_BLACK, TFT_BLACK);
-  }
-
-  tft.setTextPadding(characterPausePos[3]);
-  tft.setFreeFont(&ArialNarrow27pt7b);
-  tft.drawString("PAUSE", REF_X, REF_Y + characterPausePos[1]);
+  section[27] &= 0b10110000;
+  section[27] |= visible << 6;
+  lcd.wrone(27, section[27]);
 }
 
 void showEventString(bool visible) {
-  if (visible) {
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  } else {
-    tft.setTextColor(TFT_BLACK, TFT_BLACK);
-  }
-
-  tft.setTextPadding(characterEventPos[3]);
-  tft.setFreeFont(&ArialNarrow27pt7b);
-  tft.drawString("EVENT", REF_X, REF_Y + characterEventPos[1]);
+  section[27] &= 0b01110000;
+  section[27] |= visible << 7;
+  lcd.wrone(27, section[27]);
 }
 
 void showONString(bool visible) {
-  if (visible) {
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  } else {
-    tft.setTextColor(TFT_BLACK, TFT_BLACK);
-  }
-
-  tft.setTextPadding(characterONPos[3]);
-  tft.setFreeFont(&ArialNarrow27pt7b);
-  tft.drawString("ON", REF_X, REF_Y + characterONPos[1]);
+  section[29] &= 0b00010000;
+  section[29] |= visible << 5;
+  lcd.wrone(29, section[29]);
 }
 
 void showOffString(bool visible) {
-  if (visible) {
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  } else {
-    tft.setTextColor(TFT_BLACK, TFT_BLACK);
-  }
-
-  tft.setTextPadding(characterOffPos[3]);
-  tft.setFreeFont(&ArialNarrow27pt7b);
-  tft.drawString("OFF", REF_X, REF_Y + characterOffPos[1]);
+  section[29] &= 0b00100000;
+  section[29] |= visible << 4;
+  lcd.wrone(29, section[29]);
 }
 
-uint8_t prevLevelValue = 60;
-void showLevelString(uint8_t levelValue, bool visible) {
-  tft.setTextPadding(characterLevelPos[3]);
-  tft.setFreeFont(&TickingTimebombBB18pt7b);
 
+void showLevelString(uint8_t levelValue, bool visible) {
+  section[31] &= 0x80;
   if (visible) {
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.drawString(String(levelValue), REF_X + characterLevelPos[0], REF_Y + characterLevelPos[1]);
+    section[31] |= lcd.charToSegBits(levelValue) << 4;
+    lcd.wrone(30, lcd.charToSegBits(levelValue));
+    lcd.wrone(31, section[31]);
   } else {
-    tft.setTextColor(TFT_BLACK, TFT_BLACK);
-    tft.drawString(String(levelValue), REF_X + characterLevelPos[0], REF_Y + characterLevelPos[1]);
+    lcd.wrone(30, 0);
+    lcd.wrone(31, section[31]);
   }
-  prevLevelValue = levelValue;
 }

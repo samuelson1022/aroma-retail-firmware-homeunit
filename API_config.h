@@ -10,7 +10,7 @@ int API_Get_Status(String serverPath, int bUpdateRTCFlag, int* piAction);
 int API_Get_Events(char* szSerial);
 int API_Get_ACK(char* szSerial, char* ACK_Type);
 //int bVacation_Hold = 0;
-char szUnitSerial[] = "Aroma-005-220221";
+char szUnitSerial[] = "Aroma-001-201111";
 
 typedef enum
 {
@@ -48,10 +48,10 @@ typedef struct
 {
   uint16_t  uHeaderID; // set to SCBHEADERID when initialized
   uint16_t  SCB_State;
-  uint8_t   MACAddress[6];
+  char   MACAddress[64];
   char    szUnitSerial[32];
-  char    szPCBSerial[16];
-  char    szUnitName[16];
+  char    szPCBSerial[32];
+  char    szUnitName[32];
   char    szSSID[32];
   char    szPW[64];
   uint16_t  Secs_Per_Bottle;
@@ -61,7 +61,7 @@ typedef struct
 
 SCBStructType StateCB;
 
-#define SERVER          "http://3.101.17.195:8081/api/v1"
+#define SERVER          "http://arapi.aromaretail.com/api/v1"
 #define API_EVENTS      "ar_GetEvents"
 #define API_FWINFO      "ar_GetFWUpdateInfo"
 #define API_FWPACKET    "ar_GetFWUpdatePacket"

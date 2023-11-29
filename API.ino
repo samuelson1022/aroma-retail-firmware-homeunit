@@ -1,3 +1,5 @@
+//#include "rtc.h"
+#include <HTTPUpdate.h>
 
 int API_Get_Status(char* szSerial, int bUpdateRTCFlag, int* piAction)
 {
@@ -12,7 +14,7 @@ int API_Get_Status(char* szSerial, int bUpdateRTCFlag, int* piAction)
 
   // Get status from API
   sprintf(szAPI, "%s/%s/%s", SERVER, API_STATUS, szSerial);
-  Serial.println(szAPI);
+//  Serial.println(szAPI);
   http.begin(szAPI);
   *piAction = 0;
 
@@ -49,6 +51,10 @@ int API_Get_Status(char* szSerial, int bUpdateRTCFlag, int* piAction)
     iNextTimeSecs = iNextTimeSecs < 15 ? 15 : iNextTimeSecs;   // minimum 15 seconds
     RequestStatusMOD = iNextTimeSecs * 1000;   // convert to msec ticks
 
+//    Serial.print("iAction = " + String(iAction));
+//    Serial.print("iHours = " + String(iHours));
+
+
     if (iAction > 0) printf("Status API Action = %i\r\n", iAction);
     // Got the full payload, set clock if requested
     if (bUpdateRTCFlag)
@@ -56,7 +62,7 @@ int API_Get_Status(char* szSerial, int bUpdateRTCFlag, int* piAction)
       myRTC.setHour(iHours);
       myRTC.setMinute(iMinutes);
       myRTC.setSecond(iSeconds);
-      myRTC.setDoW(iDOW);
+      myRTC.setDoW(iDOW);      
     }
     // All good, pass the action code through
     *piAction = iAction;
@@ -84,7 +90,7 @@ int API_Get_Events(char* szSerial)
   // Get status from API
   
   sprintf(szAPI, "%s/%s/%s", SERVER, API_EVENTS, szSerial);
-  Serial.println(szAPI);
+//  Serial.println(szAPI);
   http.begin(szAPI);
 
   int httpCode = http.GET();
@@ -93,8 +99,8 @@ int API_Get_Events(char* szSerial)
     String payload = http.getString();    
     payload.remove(0, 9);
     payload.toCharArray(szResponse, 350);
-    Serial.println("HTTP code for GET Events = "+ String(httpCode));
-    Serial.println(payload);
+//    Serial.println("HTTP code for GET Events = "+ String(httpCode));
+//    Serial.println(payload);
   } else {
 //    Serial.println("Error on HTTP ACK request");
   }
@@ -137,7 +143,6 @@ int API_Get_Events(char* szSerial)
         StateCB.Events[i].DayOfWeek = StateCB.Events[i].DayOfWeek | (((doWTemp >> count) & 0x01) << (6 - count));
       }
       Serial.println(StateCB.Events[i].DayOfWeek);
-      
     }
     // Store the SCB
     Update_SCB();
@@ -296,117 +301,31 @@ int API_Get_OverrideCancel(char* szSerial)
 
 int API_Get_FWUpdateInfo(char* szSerial)
 {
-  char szResponse[256];
-  char szAPI[64];
-  int i;
-  char* token;
+  if (WiFi.status() == WL_CONNECTED) {
+    WiFiClient client;
+    httpUpdate.rebootOnUpdate(false); // remove automatic update
 
-  // FW INFO
-  //BYTELEN|CRC|
+    Serial.println(F("Update start now!"));
 
-  sprintf(szAPI, "%s/%s/%s", SERVER, API_FWINFO, szSerial);
-  Serial.println(szAPI);
-  //int httpCode = API_Get_Request(szAPI, szResponse);
-  http.begin(szAPI);
-  int httpCode = http.GET();
-  
-  if (httpCode > 0) {
-    String payload = http.getString();
-    payload.remove(0, 9);
-    payload.toCharArray(szResponse, 128);
-    Serial.println("HTTP code for GET FW Update Info = "+ String(httpCode));
-    Serial.println(payload);
-  } else {
-    Serial.println("Error on HTTP ACK request");
-  }
-  
-  if (httpCode == 200)
-  {
-    printf("FWINFO response: %s\r\n", szResponse);
-    // Parse fw update parameters
-    token = strtok(szResponse, "|"); if (token == NULL) return 0;
-    FWUpdate_Rec.ByteCount = atoi(token);
-    token = strtok(NULL, "|"); if (token == NULL) return 0;
-    FWUpdate_Rec.uCRC = atoi(token);
-  }
-  return httpCode;
-}
+    t_httpUpdate_return ret = httpUpdate.update(client, "3.26.104.241", 3000, "/firmware/httpUpdateNew.bin");
 
-int API_Get_FWUpdatePackets(char* szSerial)
-{
-  char szResponse[256];
-  char szAPI[128];
-  int i;
-  int iPigTail;
-  int iPacketNum;
-  int iPacketLength;
-  char* token;
+    switch (ret) {
+      case HTTP_UPDATE_FAILED:
+        Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+        Serial.println(F("Retry in 10secs!"));
+        delay(10000); // Wait 10secs
+        break;
 
-  // FW Packet
-  // PACKET(Index)|
-  File file = SPIFFS.open("/update.bin", FILE_APPEND);
-  sprintf(szAPI, "%s/%s/%s/%i", SERVER, API_FWPACKET, szSerial, FWUpdate_Rec.PacketIndex);
-  Serial.println(szAPI);
-  //int httpCode = API_Get_Request(szAPI, szResponse);
+      case HTTP_UPDATE_NO_UPDATES:
+        Serial.println("HTTP_UPDATE_NO_UPDATES");
+        break;
 
-  http.begin(szAPI);
-  int httpCode = http.GET();
-  
-  if (httpCode > 0) {
-    String payload = http.getString();
-    payload.remove(0, 11);
-    payload.toCharArray(szResponse, 128);
-    Serial.println("HTTP code for GET FWUpdatePackets = "+ String(httpCode));
-    Serial.println(payload);
-  } else {
-    Serial.println("Error on HTTP FWUpdatePackets request");
-  }
-  
-  if (httpCode == 200)
-  {
-    printf("FWPACKET[%i]: %s\r\n", FWUpdate_Rec.PacketIndex, szResponse);
-    // Parse fw packets
-    token = strtok(szResponse, "|"); if (token == NULL) return 0;
-    iPacketLength = FWUpdate_Rec.ByteCount * 2; // 114580
-    iPacketNum = iPacketLength / PACKETSIZEBYTES; // 895
-    iPigTail = (iPacketLength % PACKETSIZEBYTES) > 0 ? 1 : 0; //20
-    if (FWUpdate_Rec.PacketIndex < iPacketNum)
-    {
-      if ((FWUpdate_Rec.PacketIndex == iPacketNum - 1) && !iPigTail)
-      {
-        //FlashPacket(FWUpdate_Rec.PacketIndex, token, 1);  // last segment
-        if (!file.print(token))
-        {
-          Serial.println("Appending file");
-        }
-        FWUpdate_State = eFWUpdate_Idle;
+      case HTTP_UPDATE_OK:
+        Serial.println("HTTP_UPDATE_OK");
+        delay(1000); // Wait a second and restart
         API_Get_ACK(StateCB.szUnitSerial, API_FWPACKET);
-        file.close();
-        updateFromFS();
-      }
-      else
-      {
-        //FlashPacket(FWUpdate_Rec.PacketIndex, token, 0);   // not last one
-        if (!file.print(token))
-        {
-          Serial.println("Appending file");
-        }
-        file.close();
-        FWUpdate_Rec.PacketIndex++;
-      }
-    }
-    else
-    {
-      //FlashPacket(FWUpdate_Rec.PacketIndex, token, 1);
-      if (!file.print(token))
-      {
-          Serial.println("Appending file");
-      }
-      FWUpdate_State = eFWUpdate_Idle;
-      API_Get_ACK(StateCB.szUnitSerial, API_FWPACKET);
-      file.close();
-      updateFromFS();
+        ESP.restart();
+        break;
     }
   }
-  return httpCode;
 }

@@ -159,30 +159,30 @@ void HT1621::clear(){
 }
 
 char HT1621::charToSegBits(uint8_t character) {
-	switch (character) {
-	case 0:
-		return 0b11110101;
-	case 1:
-		return 0b00000101;
-	case 2:
-		return 0b10110110;
-	case 3:
-		return 0b10010111;
-	case 4:
-		return 0b01000111;
-	case 5:
-		return 0b11010011;
-	case 6:
-		return 0b11110011;
-	case 7:
-		return 0b10000101;
-	case 8:
-		return 0b11110111;
-	case 9:
-		return 0b11010111;
+  switch (character) {
+  case 0:
+    return 0b11110101;
+  case 1:
+    return 0b00000101;
+  case 2:
+    return 0b10110110;
+  case 3:
+    return 0b10010111;
+  case 4:
+    return 0b01000111;
+  case 5:
+    return 0b11010011;
+  case 6:
+    return 0b11110011;
+  case 7:
+    return 0b10000101;
+  case 8:
+    return 0b11110111;
+  case 9:
+    return 0b11010111;
   case 10:
     return 0b00000010;
-	default:
-		return 0b11010111;
-	}
+  default:
+    return 0b11010111;
+  }
 }

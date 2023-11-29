@@ -1,9 +1,10 @@
-#include "events.h"
+
+#include "rtc.h"
 #include "lcd.h"
 
 eMarqueeState Marquee_State;
-TimePreviousState prevTimeState;
 
+int levelTest = 1;
 int countVariable = 1;
 bool showEventDisplayOnce = false;
 int windIndex = 0;
@@ -39,8 +40,8 @@ void Menu_Display() {
       prevTimeState.preMarqueeState = Marquee_State;
       //      }
 
-      rtc_get(&CurrentTime, &CurrentDate);
-      prevTimeState.dayOfWeek = 1 << CurrentDate.WeekDay;
+      rtc_get();
+      prevTimeState.dayOfWeek = 1 << (CurrentDate.WeekDay - 1);
 //      prevTimeState.dayOfWeek = StateCB.Events[0].DayOfWeek;
 //      for (countVariable = 0; countVariable < 5; countVariable ++) {
 //        if (((1 << (CurrentDate.WeekDay - 1)) & StateCB.Events[countVariable].DayOfWeek) != 0) {
@@ -102,11 +103,11 @@ void Menu_Display() {
       showONString(false);
       setHour();
       showColon(true);
-      rtc_get(&CurrentTime, &CurrentDate);
-      prevTimeState.dayOfWeek = CurrentDate.WeekDay;
+      rtc_get();
+      prevTimeState.dayOfWeek = CurrentDate.WeekDay - 1;
 
       showDayOfWeek(0, false);
-      showDayOfWeek(1 << (prevTimeState.dayOfWeek - 1), true);
+      showDayOfWeek(1 << prevTimeState.dayOfWeek, true);
       break;
     case eMenu_Aroma_Set_Event_Start_Hour:
       lcdRefreshTime = 500;
@@ -143,7 +144,6 @@ void Menu_Display() {
     case eMenu_Aroma_Set_Day_Of_Week:
       showMinute(prevTimeState.minute, true);
       prevTimeState.dayOfWeekFlag = !(prevTimeState.dayOfWeekFlag);
-      //      iDayOfWeek = (((CurrentDate.WeekDay - 1) + j) % 7) + 1;
       showDayOfWeek(1 << prevTimeState.dayOfWeek, prevTimeState.dayOfWeekFlag);
       lastBLTime = millis();
       break;
@@ -181,4 +181,8 @@ void Menu_Display() {
 void setHour() {
   prevTimeState.hourFlag = !(prevTimeState.hourFlag);
   showHour(prevTimeState.hour, prevTimeState.hourFlag);
+}
+
+void Menu_GoHome() {
+  MenuType = eMenu_Aroma_Home;
 }

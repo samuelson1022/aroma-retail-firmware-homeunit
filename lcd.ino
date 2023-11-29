@@ -5,6 +5,7 @@
 #define LCD_DATA_PIN 16
 #define BACKLIGHT_PIN 17
 
+HT1621 lcd;
 
 uint8_t section[32];
 
@@ -133,7 +134,7 @@ void showDayOfWeek(uint8_t dayOfWeekValue, bool visible) {
     // Sat
     dayOfWeekValue >>= 1;
     section[26] |= (dayOfWeekValue & 1) << 5;
-    
+
     // SUN
     dayOfWeekValue >>= 1;
     section[26] |= (dayOfWeekValue & 1) << 6;
@@ -215,4 +216,11 @@ void showLevelString(uint8_t levelValue, bool visible) {
     lcd.wrone(30, 0);
     lcd.wrone(31, section[31]);
   }
+}
+
+void lcdBackLightOn(bool onoff) {
+  if (onoff)
+    lcd.backlight();
+  else
+    lcd.noBacklight();
 }

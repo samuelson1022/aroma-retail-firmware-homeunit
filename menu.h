@@ -70,6 +70,7 @@ typedef struct
 
 
 void Menu_Display();
+void Menu_GoHome();
 
 extern TimePreviousState prevTimeState;
 extern bool showEventDisplayOnce;

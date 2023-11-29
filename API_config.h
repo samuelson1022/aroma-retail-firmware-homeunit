@@ -9,6 +9,7 @@ int RequestStatusMOD = 30000;
 int API_Get_Status(String serverPath, int bUpdateRTCFlag, int* piAction);
 int API_Get_Events(char* szSerial);
 int API_Get_ACK(char* szSerial, char* ACK_Type);
+int API_Get_FWUpdateInfo(char* szSerial);
 //int bVacation_Hold = 0;
 char szUnitSerial[] = "Aroma-001-201111";
 
@@ -50,8 +51,8 @@ typedef struct
   uint16_t  SCB_State;
   char   MACAddress[64];
   char    szUnitSerial[32];
-  char    szPCBSerial[32];
-  char    szUnitName[32];
+  char    szPCBSerial[16];
+  char    szUnitName[16];
   char    szSSID[32];
   char    szPW[64];
   uint16_t  Secs_Per_Bottle;

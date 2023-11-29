@@ -30,12 +30,12 @@ void Init_SCB()
     printf("Initializing SCB\r\n");
     StateCB.uHeaderID = SCBHEADERID;
     StateCB.SCB_State = eSCB_CM_Validate;
-    strcpy(StateCB.szUnitSerial, "AROMA-001-231109");
+    strcpy(StateCB.szUnitSerial, "Aroma-001-201111");
     strcpy(StateCB.szUnitName, "Aroma Dispenser");
     strcpy(StateCB.szPCBSerial, "?");
-    strcpy(StateCB.szSSID, "CU_F68b");
-    strcpy(StateCB.szPW, "hk2yjznx");
-    strcpy(StateCB.MACAddress, "FC:CD:2F:90:09:2A");
+    strcpy(StateCB.szSSID, "");
+    strcpy(StateCB.szPW, "");
+    strcpy(StateCB.MACAddress, "FC:CD:2F:90:03:FF");
     StateCB.Levels[0].WorkSeconds =  3; StateCB.Levels[0].PauseSeconds = 160;
     StateCB.Levels[1].WorkSeconds = 10; StateCB.Levels[1].PauseSeconds =  90;
     StateCB.Levels[2].WorkSeconds = 15; StateCB.Levels[2].PauseSeconds =  60;
@@ -55,14 +55,14 @@ void Init_SCB()
     printf("Reading SCB\r\n");
     StateCB.SCB_State &= 0xFF; // Mask the update bit
   }
-  //  printf("SCB Size %i Bytes\r\n", sizeof(StateCB));
-  //  printf("SCB State: %i\r\n", StateCB.SCB_State);
-  //  printf("UNIT S/N:  %s\r\n", StateCB.szUnitSerial);
-  //  printf("PCB  S/N:  %s\r\n", StateCB.szPCBSerial);
-  //  printf("Name: %s\r\n", StateCB.szUnitName);
-  //  printf("MAC:  %s\r\n", Get_MAC_Address_Str(szMesg));
-  //  printf("SSID: %s\r\n", StateCB.szSSID);
-  //  printf("PW:   %s\r\n", StateCB.szPW);
+//  printf("SCB Size %i Bytes\r\n", sizeof(StateCB));
+//  printf("SCB State: %i\r\n", StateCB.SCB_State);
+//  printf("UNIT S/N:  %s\r\n", StateCB.szUnitSerial);
+//  printf("PCB  S/N:  %s\r\n", StateCB.szPCBSerial);
+//  printf("Name: %s\r\n", StateCB.szUnitName);
+//  printf("MAC:  %s\r\n", Get_MAC_Address_Str(szMesg));
+//  printf("SSID: %s\r\n", StateCB.szSSID);
+//  printf("PW:   %s\r\n", StateCB.szPW);
 }
 void Set_Factory_Defaults()
 {
@@ -94,6 +94,6 @@ void Update_SCB()
 {
   EEPROM.put(StateCB_addr, StateCB);
   EEPROM.commit();
-  //  Serial.println("updated");
+//  Serial.println("updated");
   //Init_Pump_State(); //Forces new program parameters to load
 }

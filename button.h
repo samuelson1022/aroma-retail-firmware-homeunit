@@ -3,7 +3,6 @@
 #define ButtonDebounceMsec 50
 #define ButtonShortMsec 100
 #define ButtonRepeatMsec 1000
-#define ButtonRepeat10s 10000
 
 typedef enum {
   eButton_None = 0x00,

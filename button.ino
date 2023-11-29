@@ -1,4 +1,5 @@
 
+#include "rtc.h"
 #include "button.h"
 #include "menu.h"
 // #include "lcd.h"
@@ -8,6 +9,8 @@ eButtonType Button_Type = eButton_None;
 ePressState Button_Press = ePress_None;
 // int bRequest_Handle_Button_Press = 0;
 extern TimePreviousState prevTimeState;
+
+unsigned long modeButtonRepeatCount = 0;
 
 void Menu_Display(void);
 
@@ -34,10 +37,6 @@ void Button_Scan() {
           // Serial.println("Button Press Repeat!");
           Button_Press = ePress_Repeat;
         }
-        if (ButtonDownMsec >= ButtonRepeat10s) {
-          // Serial.println("Button Press Repeat!");
-          Button_Press = ePress_10s;
-        }
       } else {
         if (ButtonDownMsec >= ButtonShortMsec) {
           // Button was released for a short press
@@ -55,6 +54,7 @@ void Button_Scan() {
     case ePress_Repeat:
       if (!GetButtonsDown()) {
         ButtonDownMsec = 0;
+        modeButtonRepeatCount = 0;
         Button_Press = ePress_None;
       }
       bRequest_Handle_Button_Press = 1;
@@ -130,12 +130,15 @@ void Handle_Button_Press() {
           Button_Press = ePress_None;
           break;
         case ePress_Repeat:
-          break;
-        case ePress_10s:
-          //          Init_SCB();
-          Set_Factory_Defaults();
-          Serial.println("Mode Button Pressed 10 secs");
-          Button_Press = ePress_None;
+          modeButtonRepeatCount ++;
+
+          if (modeButtonRepeatCount == 600) {
+            //          Init_SCB();
+            Set_Factory_Defaults();
+            Serial.println("Mode Button Pressed 10 secs");
+            Button_Press = ePress_None;
+            modeButtonRepeatCount = 0;
+          }
           break;
       }
       break;
@@ -156,11 +159,7 @@ void Handle_Set_Short() {
       MenuType = eMenu_Aroma_Set_Day_Of_Week;
       break;
     case eMenu_Aroma_Set_Day_Of_Week:
-      myRTC.setHour(prevTimeState.hour);
-      myRTC.setMinute(prevTimeState.minute);
-      myRTC.setSecond(0);
-      myRTC.setDoW(prevTimeState.dayOfWeek);
-
+      SaveToRTC();
       prevTimeState.preMarqueeState = MarqueeState_Updating_FW;
       MenuType = eMenu_Aroma_Home;
       break;
@@ -174,7 +173,6 @@ void Handle_Set_Short() {
       MenuType = eMenu_Aroma_Set_Event_Start_Minute;
       break;
     case eMenu_Aroma_Set_Event_Start_Minute:
-      eventDoWSetIndex = 0;
       MenuType = eMenu_Aroma_Set_Event_Start_Day_Of_Week;
       break;
     case eMenu_Aroma_Set_Event_Start_Day_Of_Week:
@@ -213,6 +211,7 @@ void Handle_Mode_Short() {
         prevTimeState.dayOfWeek = StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek;
         prevTimeState.workLevel = StateCB.Events[prevTimeState.eventLevel - 1].Level;
       }
+
       showEventDisplayOnce = false;
       MenuType = eMenu_Aroma_Set_Events;
       break;
@@ -273,7 +272,6 @@ void Handle_Mode_Short() {
         MenuType = eMenu_Aroma_Home;
         prevTimeState.dayOfWeek = 7;  // Random value to show the current DoW
       } else {
-        //        if (StateCB.Events[prevTimeState.eventLevel - 1].StartHour == 0 && StateCB.Events[prevTimeState.eventLevel - 1].StartMinute == 0 &&  StateCB.Events[prevTimeState.eventLevel - 1].EndHour == 0 && StateCB.Events[prevTimeState.eventLevel - 1].EndMinute == 0) {
         if (StateCB.Events[prevTimeState.eventLevel - 1].DayOfWeek == 0) {
           prevTimeState.hour = 99;
           prevTimeState.minute = 99;
@@ -312,9 +310,6 @@ void Handle_Up_Short() {
         prevTimeState.dayOfWeek = prevTimeState.dayOfWeek & (~(1 << eventDoWSetIndex));
       else
         prevTimeState.dayOfWeek = prevTimeState.dayOfWeek | (1 << eventDoWSetIndex);
-
-      //      eventDoWSetIndex = (eventDoWSetIndex + 1) % 15;
-      //      prevTimeState.dayOfWeek = eventDoWSet[eventDoWSetIndex];
       break;
     case eMenu_Aroma_Set_Event_Work_Level:
       prevTimeState.workLevel = (prevTimeState.workLevel + 1) % 10;
@@ -348,7 +343,7 @@ void Handle_Down_Short() {
     case eMenu_Aroma_Set_Event_Start_Day_Of_Week:
     case eMenu_Aroma_Set_Event_End_Day_Of_Week:
       eventDoWSetIndex = (eventDoWSetIndex + 1) % 7;
-      //      prevTimeState.dayOfWeek = eventDoWSet[eventDoWSetIndex];
+//      prevTimeState.dayOfWeek = eventDoWSet[eventDoWSetIndex];
       break;
     case eMenu_Aroma_Set_Event_Work_Level:
       iDiff = prevTimeState.workLevel - 1;

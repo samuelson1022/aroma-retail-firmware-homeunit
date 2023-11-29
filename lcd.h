@@ -2,11 +2,7 @@
 #define lcd_h
 
 
-
-
-
-
 void lcdInit();
-void showTime();
+void lcdBackLightOn(bool onoff);
 
 #endif lcd_h

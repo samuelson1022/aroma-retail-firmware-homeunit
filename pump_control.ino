@@ -57,11 +57,10 @@ void Handle_Pump_State(void) {
         //}
         break;
     }  // end switch
-  }
-  else {
+  } else {
     Marquee_State = MarqueeState_No_Event;
     // Serial.println("else condition, PumpControl.EnabledFlag");
-    rtc_get(&CurrentTime, &CurrentDate);
+    rtc_get();
     // Check the Override control block to see if an Override is pending
     switch (OverrideControl.State) {
       case eControl_None:

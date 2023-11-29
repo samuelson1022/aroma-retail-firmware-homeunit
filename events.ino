@@ -12,9 +12,9 @@ int GetNextPendingEvent(int* piDOW)
   int i, j;
   int iMinIndex = -1;
   int iDayOfWeek = 0;
-  int DOWMask;
+  int DOWMask; 
   int StartSecs;
-
+  
   for (i = 0; i < EVENTLISTSIZE; i++)
   {
     DOWMask = Get_DOW_Mask(CurrentDate.WeekDay);
@@ -26,7 +26,7 @@ int GetNextPendingEvent(int* piDOW)
         SecondsToStart = (j * SECONDSINDAY) + ((StateCB.Events[i].StartHour * 60 * 60) + (StateCB.Events[i].StartMinute * 60)) - CurrentSeconds;
         SecondsToStart = SecondsToStart < 0 ? SecondsToStart + SECONDSINDAY : SecondsToStart;
         // If event has passed on the start day then ignore
-        if (j == 0 && CurrentSeconds > StartSecs)
+        if (j == 0 && CurrentSeconds > StartSecs) 
         {
           // Event has already passed on current day
           DOWMask = DOWMask == 0x1 ? 0x40 : DOWMask >> 1;
@@ -65,16 +65,16 @@ uint8_t CheckBetweenTimes(int RTCSeconds, int TimeA_Seconds, int TimeB_Seconds)
   // Checks to see if the current time is "between" a start and end time
   // Takes midnight rollover into consideration
   //00:00 ----------------------- AXXXXXXXXXXXXXXXXXXXXXXXB ------- 23:59
-  if (TimeB_Seconds >= TimeA_Seconds)
+  if(TimeB_Seconds >= TimeA_Seconds) 
   {
     if (RTCSeconds >= TimeA_Seconds && RTCSeconds < TimeB_Seconds)
     {
       return 1;
     }
-  }
+  }   
   //00:00 XXXxxxxXXXB --------------------------------AXXXXXXXXXXXX 23:59
-  else
-  {
+  else              
+  { 
     if (
       (RTCSeconds < SECONDSINDAY && RTCSeconds >= TimeA_Seconds) ||
       (RTCSeconds < TimeB_Seconds))
@@ -96,7 +96,7 @@ int HasEventActive(int* piEvent)
   int EndSeconds;
   int CurrentSeconds;
   int i;
-
+  
   CurrentSeconds = (CurrentTime.Hours * 60 * 60) + (CurrentTime.Minutes * 60) + CurrentTime.Seconds;
   for (i = 0; i < EVENTLISTSIZE; i++)
   {
@@ -104,8 +104,8 @@ int HasEventActive(int* piEvent)
     {
       StartSeconds = (StateCB.Events[i].StartHour * 60 * 60) + (StateCB.Events[i].StartMinute * 60);
       EndSeconds = (StateCB.Events[i].EndHour * 60 * 60) + (StateCB.Events[i].EndMinute * 60);
-
-      if (CheckBetweenTimes(CurrentSeconds, StartSeconds, EndSeconds))
+      
+      if(CheckBetweenTimes(CurrentSeconds, StartSeconds, EndSeconds))
       {
         // First event wins
         *piEvent = i;
@@ -119,8 +119,8 @@ int HasEventActive(int* piEvent)
 void Schedule_Event()
 {
   int iEvent;
-  //  Serial.println("Schedule_Event()");
-  if (HasEventActive(&iEvent))
+//  Serial.println("Schedule_Event()");
+  if (HasEventActive(&iEvent))  
   {
     EventControl.Start_Hour = StateCB.Events[iEvent].StartHour;
     EventControl.Start_Minute = StateCB.Events[iEvent].StartMinute;
@@ -132,17 +132,4 @@ void Schedule_Event()
     EventControl.Pending = 0;
     Start_Pump_Control(&EventControl);
   }
-}
-
-void rtc_get(RTCTimeStructType *SetTime, RTCDateStructType *SetDate)
-{
-  bool h12;
-  bool hPM;
-  SetTime->Seconds = myRTC.getSecond();
-  SetTime->Minutes = myRTC.getMinute();
-  SetTime->Hours = myRTC.getHour(h12, hPM);
-  //  SetDate->Date = myRTC.getDay();
-  //  SetDate->Month = myRTC.getMonth();
-  //  SetDate->Year = myRTC.getYear();
-  SetDate->WeekDay = myRTC.getDoW();
 }
